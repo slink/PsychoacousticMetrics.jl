@@ -1,0 +1,16 @@
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.12.6"
+manifest_format = "2.0"
+project_hash = "335bb95bc93c5441ef702e0a43d74eea53b9397e"
+
+[[deps.PsychoacousticMetrics]]
+deps = ["ZwickerLoudness"]
+path = "."
+uuid = "c3f1bcc2-aba4-488e-81ce-2127bac789a7"
+version = "0.1.0"
+
+[[deps.ZwickerLoudness]]
+git-tree-sha1 = "91c2cd02284aab27ccf06bb5af53fd46c7ed4410"
+uuid = "08868560-fde5-4d5c-a6ad-ef47176ecf8c"
+version = "0.2.0"

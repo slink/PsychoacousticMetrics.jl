@@ -1,0 +1,17 @@
+name = "PsychoacousticMetrics"
+uuid = "c3f1bcc2-aba4-488e-81ce-2127bac789a7"
+authors = ["slink"]
+version = "0.1.0"
+
+[deps]
+ZwickerLoudness = "08868560-fde5-4d5c-a6ad-ef47176ecf8c"
+
+[compat]
+ZwickerLoudness = "0.2"
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
