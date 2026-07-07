@@ -1,9 +1,12 @@
 module PsychoacousticMetrics
 
 using ZwickerLoudness: ZwickerResult
+using Statistics: mean, std, cor
+using FFTW: fft, ifft
 
 export sharpness
 
+include("bark.jl")
 include("weighting_fastl.jl")
 include("sharpness.jl")
 

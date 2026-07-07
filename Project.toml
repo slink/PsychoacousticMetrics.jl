@@ -4,9 +4,13 @@ authors = ["slink"]
 version = "0.1.0"
 
 [deps]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 ZwickerLoudness = "08868560-fde5-4d5c-a6ad-ef47176ecf8c"
 
 [compat]
+FFTW = "1"
+Statistics = "1"
 ZwickerLoudness = "0.2"
 julia = "1.10"
 
