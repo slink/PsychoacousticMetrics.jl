@@ -1,5 +1,8 @@
 # PsychoacousticMetrics.jl
 
+[![CI](https://github.com/slink/PsychoacousticMetrics.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/slink/PsychoacousticMetrics.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/slink/PsychoacousticMetrics.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/slink/PsychoacousticMetrics.jl)
+
 Psychoacoustic sound-quality metrics for Julia, built on
 [ZwickerLoudness.jl](https://github.com/slink/ZwickerLoudness.jl).
 
