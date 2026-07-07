@@ -7,10 +7,25 @@
 # rectangle-rule grid are part of that transcription.
 
 const Z_BARK = collect(0.1:0.1:24.0)
-const WEIGHTINGS = (:din,)
+const WEIGHTINGS = (:din, :aures, :bismarck, :fastl)
 
 # DIN 45692:2009 weighting (MoSQITo sharpness_din_from_loudness.py:124-125)
 _g_din(z) = z > 15.8 ? 0.15 * exp(0.42 * (z - 15.8)) + 0.85 : 1.0
+
+# Aures 1985 — depends on total loudness N (line 127)
+_g_aures(z, N) = 0.078 * (exp(0.171 * z) / z) * N / log(0.05 * N + 1)
+
+# von Bismarck 1974 (lines 129-130)
+_g_bismarck(z) = z > 15.0 ? 0.2 * exp(0.308 * (z - 15.0)) + 0.8 : 1.0
+
+# Fastl & Zwicker 2007 — clamped linear interpolation, matching numpy.interp
+function _g_fastl(z)
+    z <= FASTL_X[1] && return FASTL_Y[1]
+    z >= FASTL_X[end] && return FASTL_Y[end]
+    i = searchsortedlast(FASTL_X, z)
+    t = (z - FASTL_X[i]) / (FASTL_X[i + 1] - FASTL_X[i])
+    return FASTL_Y[i] + t * (FASTL_Y[i + 1] - FASTL_Y[i])
+end
 
 """
     sharpness(specific_loudness; weighting=:din) -> Float64
@@ -25,8 +40,14 @@ integrates analytically per spreading segment; the two differ by ~1 %).
 Using the bin sum keeps numerator and denominator on the same
 discretization. Returns 0.0 when N < 0.1 sone.
 
-Reference: DIN 45692:2009. Implementation transcribed from MoSQITo
-`sharpness_din_from_loudness.py` (Apache-2.0).
+Four weightings are available, selected via `weighting`:
+- `:din` — DIN 45692:2009 (the default).
+- `:aures` — Aures 1985.
+- `:bismarck` — von Bismarck 1974.
+- `:fastl` — Fastl & Zwicker, *Psychoacoustics*, 2007.
+
+Implementation transcribed from MoSQITo `sharpness_din_from_loudness.py`
+(Apache-2.0).
 """
 function sharpness(specific_loudness::AbstractVector{<:Real}; weighting::Symbol=:din)
     weighting in WEIGHTINGS ||
@@ -46,4 +67,9 @@ end
 sharpness(result::ZwickerResult; weighting::Symbol=:din) =
     sharpness(result.specific_loudness; weighting)
 
-_weighting_function(weighting::Symbol, N::Float64) = _g_din
+function _weighting_function(weighting::Symbol, N::Float64)
+    weighting === :din && return _g_din
+    weighting === :bismarck && return _g_bismarck
+    weighting === :fastl && return _g_fastl
+    return z -> _g_aures(z, N)
+end
