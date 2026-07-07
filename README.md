@@ -35,6 +35,7 @@ sharpness(loudness_zwst("recording.wav"))
 ### Roughness
 
 ```julia
+using Statistics
 fs = 48000
 t = range(0, 1, length=fs)
 signal = @. (1 + sin(2π * 70 * t)) * sin(2π * 1000 * t)   # 100% AM tone
@@ -70,5 +71,5 @@ ZwickerLoudness.jl.
 
 ## License
 
-MIT. Test data and the Fastl weighting table are derived from MoSQITo
+MIT. Test data, the Fastl weighting table, and the Bark/roughness weighting tables are derived from MoSQITo
 (Apache-2.0) — see `test/data/NOTICE`.
