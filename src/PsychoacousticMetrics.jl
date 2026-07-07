@@ -4,11 +4,12 @@ using ZwickerLoudness: ZwickerResult
 using Statistics: mean, std, cor
 using FFTW: fft, ifft
 
-export sharpness
+export sharpness, roughness_dw, RoughnessResult
 
 include("bark.jl")
 include("roughness_dw_tables.jl")
 include("weighting_fastl.jl")
 include("sharpness.jl")
+include("roughness_dw.jl")
 
 end # module
