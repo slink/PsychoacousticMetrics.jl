@@ -10,4 +10,5 @@ using Test
     include("test_crosscheck_mosqito.jl")
     include("test_roughness_dw.jl")
     include("test_conformance_dw_fig3.jl")
+    include("test_crosscheck_mosqito_roughness.jl")
 end
