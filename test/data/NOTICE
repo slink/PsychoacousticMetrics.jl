@@ -1,0 +1,12 @@
+Portions of this package's test data and source are derived from MoSQITo
+(https://github.com/Eomys/MoSQITo), licensed under the Apache License 2.0
+(see LICENSE-MoSQITo in this directory):
+
+- test/data/din45692_band_levels.jl: 28-band levels computed from the
+  DIN 45692:2009 chapter-6 test signals vendored by MoSQITo; reference
+  sharpness values transcribed from
+  validations/sq_metrics/sharpness_din/validation_sharpness_din.py.
+- test/data/mosqito_crosscheck.jl: expected values computed by running
+  MoSQITo's sharpness_din_from_loudness.
+- src/weighting_fastl.jl: weighting table transcribed from
+  mosqito/sq_metrics/sharpness/sharpness_din/_weighting_fastl.py.

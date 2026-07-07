@@ -24,4 +24,4 @@ open(tmp, "w") do io
 end
 
 out = joinpath(@__DIR__, "..", "test", "data", "mosqito_crosscheck.jl")
-run(`uv run --with mosqito --with numpy --with matplotlib python $(joinpath(@__DIR__, "crosscheck_mosqito.py")) $tmp $out`)
+run(`uv run --with mosqito --with numpy --with matplotlib python $(joinpath(@__DIR__, "crosscheck_mosqito.py")) $tmp $out`)  # matplotlib: transitive import via mosqito
