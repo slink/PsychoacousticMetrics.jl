@@ -8,14 +8,18 @@ din45692_tolerance(S_ref) = max(0.05 * S_ref, 0.05)
 
 @testset "DIN 45692 conformance — narrowband (21 signals)" begin
     for (fc, S_ref, spl) in DIN45692_NARROWBAND
-        S = sharpness(zwicker_loudness(spl))
-        @test abs(S - S_ref) <= din45692_tolerance(S_ref)
+        @testset "$(fc) Hz" begin
+            S = sharpness(zwicker_loudness(spl))
+            @test abs(S - S_ref) <= din45692_tolerance(S_ref)
+        end
     end
 end
 
 @testset "DIN 45692 conformance — broadband (20 signals)" begin
     for (fc, S_ref, spl) in DIN45692_BROADBAND
-        S = sharpness(zwicker_loudness(spl))
-        @test abs(S - S_ref) <= din45692_tolerance(S_ref)
+        @testset "$(fc) Hz" begin
+            S = sharpness(zwicker_loudness(spl))
+            @test abs(S - S_ref) <= din45692_tolerance(S_ref)
+        end
     end
 end

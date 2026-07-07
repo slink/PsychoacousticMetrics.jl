@@ -37,4 +37,10 @@
         @test PsychoacousticMetrics._g_din(15.8) == 1.0
         @test PsychoacousticMetrics._g_din(20.0) ≈ 0.15 * exp(0.42 * (20.0 - 15.8)) + 0.85
     end
+
+    @testset "generic real input" begin
+        @test sharpness(big.(r.specific_loudness)) isa Real
+        @test sharpness(big.(r.specific_loudness)) ≈ sharpness(r.specific_loudness) rtol = 1e-12
+        @test sharpness(Float32.(r.specific_loudness)) isa Real
+    end
 end

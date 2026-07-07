@@ -67,9 +67,10 @@ end
 sharpness(result::ZwickerResult; weighting::Symbol=:din) =
     sharpness(result.specific_loudness; weighting)
 
-function _weighting_function(weighting::Symbol, N::Float64)
+function _weighting_function(weighting::Symbol, N::Real)
     weighting === :din && return _g_din
     weighting === :bismarck && return _g_bismarck
     weighting === :fastl && return _g_fastl
-    return z -> _g_aures(z, N)
+    weighting === :aures && return z -> _g_aures(z, N)
+    error("unreachable: weighting validated in sharpness()")
 end
