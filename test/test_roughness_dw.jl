@@ -50,5 +50,12 @@ include(joinpath(@__DIR__, "support", "am_generator.jl"))
         @test_throws ArgumentError roughness_dw(zeros(48000), 48000; overlap = 1.0)
         @test_throws ArgumentError roughness_dw(zeros(48000), 48000; overlap = -0.1)
         @test_throws ArgumentError roughness_dw(zeros(48000), 48000; pa_per_unit = 0.0)
+
+        # loud >15.5 kHz content exceeds the D&W 47-channel range;
+        # upstream MoSQITo crashes on the same input (IndexError)
+        t_hf = range(0, 1; length = 48000)
+        hf = sin.(2π * 15600 .* t_hf)
+        hf .*= 2e-5 * 10^(90 / 20) / std(hf; corrected = false)
+        @test_throws DomainError roughness_dw(hf, 48000)
     end
 end

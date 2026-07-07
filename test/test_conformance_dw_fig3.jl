@@ -39,6 +39,11 @@
 import FFTW
 FFTW.set_num_threads(1)  # pin run-to-run determinism for gate-boundary points
 
+# This file uses `am_sine`, normally defined by test_roughness_dw.jl earlier
+# in the runtests.jl include order; guard against running this file alone.
+isdefined(@__MODULE__, :am_sine) ||
+    include(joinpath(@__DIR__, "support", "am_generator.jl"))
+
 include(joinpath(@__DIR__, "data", "dw_fig3_references.jl"))
 
 const _DW_FIG3_KNOWN_BROKEN = Set([

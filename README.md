@@ -71,5 +71,6 @@ ZwickerLoudness.jl.
 
 ## License
 
-MIT. Test data, the Fastl weighting table, and the Bark/roughness weighting tables are derived from MoSQITo
-(Apache-2.0) — see `test/data/NOTICE`.
+MIT. Test data, the roughness implementation, and the Fastl/Bark/roughness
+weighting tables are derived from MoSQITo (Apache-2.0) — see
+`test/data/NOTICE`.

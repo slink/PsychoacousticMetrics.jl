@@ -19,3 +19,4 @@ Portions of this package's test data and source are derived from MoSQITo
   transcribed from mosqito/utils and
   mosqito/sq_metrics/roughness/roughness_dw (MoSQITo commit d990c33f94f1).
 - test/support/am_generator.jl: transcribed from mosqito/utils/am_sine_generator.py.
+- src/roughness_dw.jl: transcribed from mosqito/sq_metrics/roughness/roughness_dw/_roughness_dw_main_calc.py, sound_level_meter/comp_spectrum.py and utils/time_segmentation.py (MoSQITo commit d990c33f94f1).

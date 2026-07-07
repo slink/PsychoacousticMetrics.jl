@@ -71,6 +71,16 @@ function _roughness_dw_frame(spec::Vector{ComplexF64}, freq_axis::AbstractVector
     audible = findall(spec_dB .> threshold)
     n_aud = length(audible)
 
+    # Upstream (MoSQITo _roughness_dw_main_calc.py) crashes with an
+    # IndexError on the same inputs: audible components at z ≥ 24 Bark
+    # (≥ 15.5 kHz at high level) index past the 47-channel arrays. The
+    # Daniel & Weber channel structure ends at 23.5 Bark, so we fail
+    # loudly instead of inventing behavior upstream never validated.
+    if !isempty(audible) && bark_axis[audible[end]] >= 24
+        throw(DomainError(freq_axis[audible[end]],
+            "audible component above 24 Bark (~15.5 kHz) — outside the Daniel & Weber channel range; low-pass the signal below 15.5 kHz first"))
+    end
+
     # ---- stage 1: excitation patterns (Terhardt slopes) ----
     s1 = -27.0
     s2 = [min(-24.0 - 230.0 / freq_axis[audible[k]] + 0.2 * spec_dB[audible[k]], 0.0)
@@ -156,8 +166,16 @@ canonical MATLAB implementation in the placement of the gzi weighting
 (outside the square). Signal is multiplied by `pa_per_unit` to obtain
 pascals. `overlap` is MoSQITo's frame-overlap coefficient (its `noverlap`
 parameter is a hop size upstream; `overlap=0.5` gives 50 % overlapping
-200 ms frames, `overlap=0` gives none). Anchor: 1 kHz, 60 dB tone, 100 %
+200 ms frames, `overlap=0` gives none). For values other than 0 and 0.5,
+note the inversion: the effective overlap fraction between consecutive
+frames is `1 − overlap`. Anchor: 1 kHz, 60 dB tone, 100 %
 amplitude-modulated at 70 Hz → 1 asper.
+
+!!! warning
+    The Daniel & Weber channel structure covers 0.5–23.5 Bark. Signals
+    with audible content above 24 Bark (roughly ≥ 15.5 kHz at high SPL)
+    throw a `DomainError`; upstream MoSQITo crashes (`IndexError`) on the
+    same inputs.
 """
 function roughness_dw(signal::AbstractVector{<:Real}, fs::Real;
                       overlap::Real = 0.5, pa_per_unit::Real = 1.0)
