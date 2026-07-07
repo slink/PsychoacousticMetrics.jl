@@ -6,8 +6,9 @@
 Psychoacoustic sound-quality metrics for Julia, built on
 [ZwickerLoudness.jl](https://github.com/slink/ZwickerLoudness.jl).
 
-v0.1 implements **sharpness** [acum] per **DIN 45692:2009**, with the
-Aures, von Bismarck, and Fastl weighting variants.
+v0.2 implements **sharpness** [acum] per **DIN 45692:2009** (with Aures,
+von Bismarck, and Fastl variants) and **roughness** [asper] per
+**Daniel & Weber (1997)** as implemented by MoSQITo.
 
 ## Quick start
 
@@ -31,6 +32,20 @@ using ZwickerLoudnessAudio
 sharpness(loudness_zwst("recording.wav"))
 ```
 
+### Roughness
+
+```julia
+fs = 48000
+t = range(0, 1, length=fs)
+signal = @. (1 + sin(2π * 70 * t)) * sin(2π * 1000 * t)   # 100% AM tone
+signal .*= 2e-5 * 10^(60/20) / std(signal)                 # 60 dB SPL
+
+r = roughness_dw(signal, fs)
+r.roughness            # overall roughness [asper] (~1.0 for this anchor)
+r.roughness_over_time  # per 200 ms frame
+r.specific_roughness   # 47 half-Bark channels × frames
+```
+
 ## Conformance
 
 Tested against all 41 DIN 45692:2009 chapter-6 reference signals
@@ -42,10 +57,15 @@ Note: total loudness N is computed as the Riemann sum over the 240-bin
 specific loudness (`0.1 * sum`), not `ZwickerResult.loudness` — see the
 `sharpness` docstring.
 
+Roughness is tested against the Zwicker & Fastl reference curves on
+MoSQITo's validation grid (7 carrier × 11 modulation frequencies, ±0.1
+asper) and cross-checked against MoSQITo's `roughness_dw` on identical
+signals.
+
 ## Roadmap
 
-Roughness, fluctuation strength, and psychoacoustic annoyance are planned
-for this package. Time-varying loudness (ISO 532-1 Method 2) belongs in
+Fluctuation strength and psychoacoustic annoyance are planned for this
+package. Time-varying loudness (ISO 532-1 Method 2) belongs in
 ZwickerLoudness.jl.
 
 ## License

@@ -10,3 +10,12 @@ Portions of this package's test data and source are derived from MoSQITo
   MoSQITo's sharpness_din_from_loudness.
 - src/weighting_fastl.jl: weighting table transcribed from
   mosqito/sq_metrics/sharpness/sharpness_din/_weighting_fastl.py.
+- test/data/dw_fig3_references.jl: Zwicker & Fastl roughness reference
+  values from validations/sq_metrics/roughness_dw/input/references.py
+  (MoSQITo commit d990c33f94f1).
+- test/data/mosqito_roughness_crosscheck.jl: expected values computed by
+  running MoSQITo's roughness_dw.
+- src/bark.jl, src/roughness_dw_tables.jl: conversion and weighting tables
+  transcribed from mosqito/utils and
+  mosqito/sq_metrics/roughness/roughness_dw (MoSQITo commit d990c33f94f1).
+- test/support/am_generator.jl: transcribed from mosqito/utils/am_sine_generator.py.

@@ -52,6 +52,10 @@ isdefined(@__MODULE__, :am_sine) ||
 # (2.3e-5); 100x (2.3e-4) is judged a safer margin while still 40x tighter
 # than the dust-adjudicated cases below.
 #
+# Contingency: if CI on another FFTW build ever trips this 2.3e-4 bound, the
+# documented dust mechanism (see fc250/fc2000 above) can legitimately inflate
+# it — move this case to the 1e-2 dust class with a note, do not debug FFTW.
+#
 # The two > 1e-3 cases were probed and are NOT transcription bugs (controller
 # adjudication of the > 1e-3 rule). Mechanism, pinned per-band on the worst
 # frame of each case: one hBP channel is analytically zero but numerically
