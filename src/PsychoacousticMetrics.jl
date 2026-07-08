@@ -8,6 +8,8 @@ export sharpness, roughness_dw, RoughnessResult
 
 include("bark.jl")
 include("roughness_dw_tables.jl")
+include("fluctuation_strength_tables.jl")
+include("fluctuation_strength_fir.jl")
 include("weighting_fastl.jl")
 include("sharpness.jl")
 include("roughness_dw.jl")
