@@ -24,3 +24,15 @@ Portions of this package's test data and source are derived from MoSQITo
   mosqito/sq_metrics/roughness/roughness_dw/_roughness_dw_main_calc.py,
   sound_level_meter/comp_spectrum.py and utils/time_segmentation.py
   (MoSQITo commit d990c33f94f1).
+
+Portions of this package's test data reference SQAT
+(https://github.com/ggrecow/SQAT), licensed under CC BY-NC 4.0. No SQAT
+source code, audio, or other CC BY-NC-licensed material is reproduced or
+redistributed by this package; only numeric behavioral facts are used:
+
+- test/data/sqat_fs_crosscheck.jl: expected values computed by running
+  SQAT's FluctuationStrength_Osses2016 (commit
+  00b449e40599f1c1ef4abe0596094552213d57eb) under Octave on signals
+  synthesized entirely by this package's own test generator
+  (test/support/fs_stimuli.jl) — a numeric cross-check fixture, not
+  transcribed code.
