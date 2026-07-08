@@ -168,3 +168,163 @@ function _fs_minbf(N0::Int, df::Float64, minexc::Vector{Float64})
         round.(Int, edges ./ df) .- (N0 - 1) .+ 1))
     return minexc[zb]
 end
+
+"""
+    FluctuationStrengthResult
+
+Result of [`fluctuation_strength_osses`](@ref): `fluctuation_strength`
+[vacil] (mean over frames), `fluctuation_strength_over_time` (per frame),
+`specific_fluctuation_strength` (47 × nframes, vacil/Bark; per-channel
+values can be negative — the reference keeps the sign of the covariance
+product), `bark_axis` (0.5:0.5:23.5), `time_axis` (frame START times [s]).
+"""
+struct FluctuationStrengthResult
+    fluctuation_strength::Float64
+    fluctuation_strength_over_time::Vector{Float64}
+    specific_fluctuation_strength::Matrix{Float64}
+    bark_axis::Vector{Float64}
+    time_axis::Vector{Float64}
+end
+
+# Generalised modulation depth (thesis App. B.2.3): h0 = mean(|e|),
+# hBP = Hweight-filtered (|e| - h0), m* = rms(hBP)/h0 for h0 > 0.
+# The h0 > 0 guard is this model's NaN barrier for silent channels.
+function _fs_modulation_depths(ei::Matrix{Float64}, sos::Matrix{Float64})
+    ch, N = size(ei)
+    mdepth = zeros(ch)
+    hBP = Matrix{Float64}(undef, ch, N)
+    for i in 1:ch
+        e = abs.(@view ei[i, :])
+        h0 = mean(e)
+        hBP[i, :] = _sosfilt(sos, e .- h0)
+        h0 > 0 && (mdepth[i] = sqrt(mean(abs2, @view hBP[i, :])) / h0)
+    end
+    return mdepth, hBP
+end
+
+# Normalised cross covariance between channels two half-Barks apart
+# (thesis App. B.2.4, Eq. B.7). Boundary channels: NEAREST-NEIGHBOR COPIES,
+# not linear extrapolation.
+#
+# The reference source (il_cross_correlation.m @ SQAT 00b449e) computes
+# these four boundary entries via 2-point interp1(..., 'spline') calls that
+# *look* like they should reduce to linear extrapolation. Under MATLAB that
+# may be true, but the pinned oracle for this package is Octave (11.3.0,
+# octave-signal 1.4.7): Octave's spline degenerates on 2-point extrapolation
+# to a silent NA, which then poisons the next boundary call (its input slice
+# includes that NA) into a hard error; a try/catch in the reference
+# swallows that error and runs its fallback branch for all FOUR boundary
+# entries, which is a nearest-neighbor COPY, never the spline/linear value.
+# Verified by direct trace against both random and fixed data (never
+# observed to differ) — see .superpowers/sdd/fs-oracle-pins.md §3.2 and the
+# instrumented reproduction in .superpowers/sdd/dump_fs_stage.m. This is a
+# deliberate divergence from the brief's original linear-extrapolation
+# formulas, which do not match the running oracle.
+function _fs_cross_covariance(hBP::Matrix{Float64})
+    ki1 = zeros(47)
+    ki2 = zeros(47)
+    for k in 1:45
+        x = @view hBP[k, :]
+        y = @view hBP[k + 2, :]
+        # zero-variance guard first: cor of a constant vector is NaN
+        (var(x) == 0.0 || var(y) == 0.0) || (ki1[k] = cor(x, y))
+    end
+    # pinned Octave catch-branch nearest-neighbor copies (see comment above)
+    ki1[46] = ki1[45]
+    ki1[47] = ki1[45]
+    ki2[1] = ki1[3]
+    ki2[2] = ki1[3]
+    ki2[3:47] = @view ki1[1:45]
+    return ki1, ki2
+end
+
+# Specific FS (thesis Eq. B.1 with the reference's deviations, documented
+# in the docstring below): compression slope 0.3 above 0.7 (reference
+# value; thesis says "3:1"), md capped at 1, p_g = 1 (thesis says 1.7),
+# sign of the covariance product preserved.
+function _fs_specific(mdepth::Vector{Float64}, ki1::Vector{Float64},
+                      ki2::Vector{Float64}, gzi::Vector{Float64})
+    fi = Vector{Float64}(undef, 47)
+    for i in 1:47
+        md = mdepth[i]
+        md > 0.7 && (md = 0.7 + 0.3 * (md - 0.7))
+        md = min(md, 1.0)
+        kp = ki1[i] * ki2[i]
+        fi[i] = gzi[i] * md^1.7 * abs(kp)^1.7 * sign(kp)
+    end
+    return fi
+end
+
+"""
+    fluctuation_strength_osses(signal, fs; method=:time_varying, pa_per_unit=1.0)
+
+Fluctuation strength [vacil] per Osses, García & Kohlrausch (2016),
+doi:10.1121/2.0000410, matching SQAT's `FluctuationStrength_Osses2016`
+(commit 00b449e) run with its defaults (simplified a0 curve, dBFS = 94).
+`fs` must be 44100 or 48000 Hz (the reference's pre-computed envelope
+filters; resample other rates first — SQAT resamples internally, we do
+not). `method = :time_varying` uses 2-s frames with 90 % overlap;
+`:stationary` analyses the whole signal as one frame — except that, because
+the frame-buffering closed form is `floor((L-V)/hop) + 1` and a stationary
+call always has `L == N` (so `L - V == hop` exactly), the "stationary" path
+actually always yields TWO frames, not one (a pinned quirk of the reference
+implementation, not a bug here — see `.superpowers/sdd/fs-oracle-pins.md`
+§3.1 and its "Step 3.1 consequence"; the second frame overlaps 90% with the
+first). Signals shorter than 2 s fall back to `:stationary` with a warning
+(reference behavior), and hit the same 2-frame quirk. Tones at/above ~24
+Bark (out of the `gzi` weighting table's domain) silently yield an exact
+`0.0` fluctuation strength, not an error (pinned; see fs-oracle-pins.md
+§3.3). Anchor: 1 kHz, 60 dB tone, 100 % amplitude-modulated at 4 Hz → 1
+vacil.
+
+Known deviations of the reference code from its own paper (code wins,
+verified against SQAT @ 00b449e, and against this package's own
+Octave-11.3.0-run oracle rig — see fs-oracle-pins.md): weighting exponent
+`p_g = 1` (paper: 1.7); modulation-depth compression slope 0.3 above 0.7
+(paper: 1/3); specific FS scaled by a calibration constant 0.4980 per
+channel, which combines with the 0.5-Bark (`dz`) trapezoidal-sum
+integration step to yield the paper's net constant `C_FS = 0.4980 × 0.5 =
+0.2490`. The cross-covariance boundary channels (§ `_fs_cross_covariance`)
+are nearest-neighbor copies rather than the extrapolation the reference
+source code's comments suggest, because the pinned oracle is Octave (not
+MATLAB) and Octave's 2-point `interp1(...,'spline')` behavior on this
+model's degenerate boundary calls deterministically takes SQAT's
+catch/fallback branch — this is a property of the *running Octave oracle*,
+not a re-derivation from reading the reference source.
+"""
+function fluctuation_strength_osses(signal::AbstractVector{<:Real}, fs::Real;
+                                    method::Symbol = :time_varying,
+                                    pa_per_unit::Real = 1.0)
+    fs == 44100 || fs == 48000 || throw(ArgumentError(
+        "fs = $fs Hz is not supported: the reference model ships envelope filters for 44100 and 48000 Hz only — resample first"))
+    pa_per_unit > 0 || throw(ArgumentError("pa_per_unit must be positive, got $pa_per_unit"))
+    method in (:time_varying, :stationary) || throw(ArgumentError(
+        "method must be :time_varying or :stationary, got $method"))
+    sig = Float64.(signal) .* pa_per_unit
+    N = round(Int, 2 * fs)
+    if method === :time_varying && N >= length(sig)
+        @warn "signal shorter than 2 s: falling back to stationary analysis (single frame), matching the reference"
+        method = :stationary
+    end
+    method === :stationary && (N = length(sig))
+
+    frames, starts = _fs_frames(sig, N)
+    w = _cos_ramp_window(N, fs, 50.0)
+    B = fs == 44100 ? _A0_FIR_B_44100 : _A0_FIR_B_48000
+    sos = fs == 44100 ? _HWEIGHT_SOS_44100 : _HWEIGHT_SOS_48000
+    gzi = _gzi_fluctuation.((1:47) ./ 2)
+
+    nf = size(frames, 2)
+    FS = Vector{Float64}(undef, nf)
+    fi = Matrix{Float64}(undef, 47, nf)
+    for s in 1:nf
+        frame = _apply_a0_fir(w .* @view(frames[:, s]), B)
+        ei = _terhardt_excitation_fs(frame, fs)
+        mdepth, hBP = _fs_modulation_depths(ei, sos)
+        ki1, ki2 = _fs_cross_covariance(hBP)
+        fi[:, s] = 0.4980 .* _fs_specific(mdepth, ki1, ki2, gzi)   # cal @ 00b449e
+        FS[s] = 0.5 * sum(@view fi[:, s])                          # dz·Σ
+    end
+    return FluctuationStrengthResult(mean(FS), FS, fi,
+        collect(0.5:0.5:23.5), starts ./ fs)
+end

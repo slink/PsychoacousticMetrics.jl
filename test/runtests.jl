@@ -7,6 +7,7 @@ using Test
     include("test_roughness_tables.jl")
     include("test_fluctuation_strength_tables.jl")
     include("test_fluctuation_strength_stages.jl")
+    include("test_fluctuation_strength.jl")
     include("test_sharpness.jl")
     include("test_conformance_din45692.jl")
     include("test_crosscheck_mosqito.jl")

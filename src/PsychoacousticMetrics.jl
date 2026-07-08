@@ -1,10 +1,11 @@
 module PsychoacousticMetrics
 
 using ZwickerLoudness: ZwickerResult
-using Statistics: mean, std, cor
+using Statistics: mean, std, cor, var
 using FFTW: fft, ifft
 
 export sharpness, roughness_dw, RoughnessResult
+export fluctuation_strength_osses, FluctuationStrengthResult
 
 include("bark.jl")
 include("roughness_dw_tables.jl")
