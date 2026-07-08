@@ -35,8 +35,11 @@
         @test all(H[i, :] == H[16, :] for i in 17:20)
         @test all(H[i, :] == H[21, :] for i in 22:41)
         @test all(H[i, :] == H[42, :] for i in 43:47)
-        # H2 peaks at 1 within its band, zero at DC bins (j < cut)
-        @test maximum(H[2, :]) ≈ 1.0 atol=0.01
+        # H2 peaks at the 30 Hz bin (5 Hz grid straddles the 32 Hz knot):
+        # _lininterp between the (25, 0.975) and (32, 1.0) knots, exactly
+        @test maximum(H[2, :]) == 0.975 + (30 - 25) / (32 - 25) * (1.0 - 0.975)
+        @test argmax(H[2, :]) == 7  # 1-based bin 7 = 30 Hz
+        # zero at DC bins (j < cut)
         @test H[2, 1] == 0.0 && H[2, 2] == 0.0
         # upstream quirk: H16/H21/H42 are truncated at the H5 bound
         # (last = floor(502/fs*n)), so bins above 502 Hz are zero
