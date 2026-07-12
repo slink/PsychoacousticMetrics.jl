@@ -13,22 +13,24 @@ using Statistics: mean
         # docstring). Tolerance derivation (measured 2026-07-08, see
         # .superpowers/sdd/fs-task-4-report.md for the full log):
         #   |oracle(anchor_44k fs_mean) - 1.0|  = |1.0053626323366578 - 1| = 5.3626e-3
-        #   |Julia FS(anchor) - oracle fs_mean|  = 1.0474e-10 (measured; this
-        #     package's own oracle rig gives near-machine-precision parity,
-        #     consistent with the 1.3e-13 parity measured at the excitation
-        #     stage in Task 3 — the ~1e-3 gap to 1.0 is entirely the
-        #     reference model's own distance from the ideal 1 vacil, not a
-        #     Julia-vs-oracle discrepancy)
-        # ANCHOR_ATOL is set to ~2x the sum of both (~2 * 5.3627e-3 =
-        # 1.0725e-2), so it is documented and not a silently-widened magic
-        # number, and is computed from measurements below rather than
-        # hardcoded so it stays honest if the oracle fixture ever changes.
+        #     (this is the reference model's own distance from the ideal 1
+        #     vacil, measured once from the fixture — not derived from the
+        #     value under test, so the gate below is falsifiable)
+        #   |Julia FS(anchor) - oracle fs_mean|  = 1.0474e-10 (measured
+        #     separately; this package's own oracle rig gives
+        #     near-machine-precision parity, consistent with the 1.3e-13
+        #     parity measured at the excitation stage in Task 3)
+        # ANCHOR_ATOL is set to 2x oracle_dev (2 * 5.3626e-3 = 1.0725e-2):
+        # documented, not a silently-widened magic number, and independent
+        # of r.fluctuation_strength so a regression in the code under test
+        # cannot inflate its own tolerance. The tight rtol=1e-6 check below
+        # (against oracle_fs_mean, not 1.0) is the gate that actually
+        # catches Julia-vs-oracle drift.
         sig = fs_am_tone(1000.0, 4.0, 60.0, 4.0, 44100.0)
         r = fluctuation_strength_osses(sig, 44100)
         oracle_fs_mean = 1.0053626323366578
         oracle_dev = abs(oracle_fs_mean - 1.0)
-        julia_dev = abs(r.fluctuation_strength - oracle_fs_mean)
-        ANCHOR_ATOL = 2 * (oracle_dev + julia_dev)
+        ANCHOR_ATOL = 2 * oracle_dev
         @test isapprox(r.fluctuation_strength, 1.0; atol = ANCHOR_ATOL)
         # tight self-consistency check vs the oracle fixture (not vs 1.0)
         @test isapprox(r.fluctuation_strength, oracle_fs_mean; rtol = 1e-6)
@@ -148,13 +150,43 @@ using Statistics: mean
         @test f(4.0) > f(32.0)
     end
 
-    @testset "24 Bark behavior matches oracle" begin
+    @testset "24 Bark behavior" begin
         # Pinned fact (fs-oracle-pins.md Step 3.3): a 15.8 kHz, 70 dB tone
         # (>= 24 Bark) yields FSmean = 0.0 EXACTLY, silently — not an error,
         # not NaN. Fixture: SQAT_FS_CASES "tone_25bark" (fs_mean = 0.0).
+        # This is the INAUDIBLE regime: the a0 roll-off pushes the level
+        # below the hearing threshold before the excitation stage even sees
+        # it, so `audible` is empty and the short-circuit-to-zero path
+        # (never the >= 24 Bark guard below) is what fires.
         sig, fs, _ = synthesize_case("tone_25bark")
         r = fluctuation_strength_osses(sig, fs)
         @test r.fluctuation_strength == 0.0
         @test !any(isnan, r.specific_fluctuation_strength)
+
+        # AUDIBLE regime: raise the level so the component survives the a0
+        # roll-off and is still above threshold at >= 24 Bark. Measured
+        # (2026-07-11): a 15.5 kHz, 100 dB SPL, 4 s pure tone at 44100 Hz
+        # has its highest audible bin at exactly bark = 24.0 (verified via
+        # the same _terhardt_excitation_fs audible-bin computation this
+        # guard uses) — i.e. it DOES trigger the audible->=24-Bark path,
+        # unlike tone_25bark above. Upstream (TerhardtExcitationPatterns.m
+        # @ SQAT 00b449e) crashes on this exact input: its kk1 expansion
+        # (line 68) indexes past the 47-column array once
+        # floor(2*bark) >= 48, i.e. bark >= 24 (verified against the
+        # pinned Octave oracle). We fail loudly instead of returning an
+        # unvalidated number (the unguarded code silently returned
+        # 0.2070074124444851 here).
+        t = (0:round(Int, 4.0 * 44100)-1) ./ 44100
+        p = 2e-5 * 10.0^(100 / 20)
+        loud_sig = (p * sqrt(2)) .* cos.(2π * 15500 .* t)
+        @test_throws DomainError fluctuation_strength_osses(loud_sig, 44100)
+
+        # Boundary: bark in (23.5, 24), audible, must NOT throw (upstream's
+        # `if i ~= 47` branch protects this range). Measured: a 15.4 kHz,
+        # 100 dB SPL tone has its highest audible bin at bark = 23.975 —
+        # audible, just under 24 — and completes normally.
+        boundary_sig = (p * sqrt(2)) .* cos.(2π * 15400 .* t)
+        rb = fluctuation_strength_osses(boundary_sig, 44100)
+        @test isfinite(rb.fluctuation_strength)
     end
 end

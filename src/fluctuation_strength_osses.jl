@@ -102,7 +102,29 @@ function _terhardt_excitation_fs(frame::AbstractVector{Float64}, fs::Real)
     LdB = 20 .* log10.(max.(Lg, floatmin()))
     minexc = _fs_threshold_db.(barks)
     audible = findall(LdB .> minexc)
+
+    # A frame with NO audible components (e.g. a moderate-level
+    # high-frequency tone killed by the a0 roll-off before it ever reaches
+    # this stage) short-circuits to silence below — that path IS oracle-
+    # validated (SQAT_FS_CASES "tone_25bark": 70 dB @ 15.8 kHz, empty
+    # audible set, FSmean = 0.0 exactly; fs-oracle-pins.md Step 3.3).
     isempty(audible) && return zeros(47, N)
+
+    # But a component that stays AUDIBLE at >= 24 Bark (~15.5 kHz and
+    # above, at high enough level to survive the a0 roll-off) is outside
+    # the model's 47-channel structure (channels only run to 23.5 Bark).
+    # Upstream (TerhardtExcitationPatterns.m @ SQAT 00b449e) crashes on
+    # exactly this input: its kk1 expansion (line 68) indexes past the
+    # 47-column array once floor(2*bark) >= 48, i.e. bark >= 24 (verified
+    # against the pinned Octave oracle). `audible` is sorted by frequency,
+    # so its last entry is the highest audible bin. Fail loudly instead of
+    # inventing behavior upstream never validated (the unguarded
+    # computation silently returned a number here, e.g. 0.2070074124444851
+    # vacil for a 100 dB, 15.5 kHz, 4 s tone).
+    if barks[audible[end]] >= 24
+        throw(DomainError(freqs[audible[end]],
+            "audible component above 24 Bark (~15.5 kHz), outside the model's 47-channel structure; upstream reference errors on the same inputs — low-pass below ~15.5 kHz first"))
+    end
 
     # MinBf: threshold sampled at the sorted Zwicker band edge/center bins,
     # then indexed by CHANNEL number (quirk; il_calculate_MinBf @ 00b449e).
@@ -271,11 +293,20 @@ actually always yields TWO frames, not one (a pinned quirk of the reference
 implementation, not a bug here — see `.superpowers/sdd/fs-oracle-pins.md`
 §3.1 and its "Step 3.1 consequence"; the second frame overlaps 90% with the
 first). Signals shorter than 2 s fall back to `:stationary` with a warning
-(reference behavior), and hit the same 2-frame quirk. Tones at/above ~24
-Bark (out of the `gzi` weighting table's domain) silently yield an exact
-`0.0` fluctuation strength, not an error (pinned; see fs-oracle-pins.md
-§3.3). Anchor: 1 kHz, 60 dB tone, 100 % amplitude-modulated at 4 Hz → 1
-vacil.
+(reference behavior), and hit the same 2-frame quirk.
+
+Content at/above ~24 Bark (~15.5 kHz) has two distinct regimes, and only
+one is oracle-validated: a moderate-level high-frequency tone killed by the
+a0 roll-off before the excitation stage (no audible bins left) silently
+yields an exact `0.0` fluctuation strength, not an error — pinned against
+the reference (fs-oracle-pins.md §3.3). But a component that stays AUDIBLE
+at >= 24 Bark (loud enough to survive the roll-off) throws a `DomainError`:
+it falls outside the model's 47-channel structure (channels only run to
+23.5 Bark), and the upstream reference itself crashes on the same inputs
+(`TerhardtExcitationPatterns.m`'s kk1 expansion indexes past its 47-column
+array once `floor(2*bark) >= 48`). Low-pass content below ~15.5 kHz first
+if this matters for your signals. Anchor: 1 kHz, 60 dB tone, 100 %
+amplitude-modulated at 4 Hz → 1 vacil.
 
 Known deviations of the reference code from its own paper (code wins,
 verified against SQAT @ 00b449e, and against this package's own

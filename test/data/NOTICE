@@ -38,7 +38,8 @@ facts (parameter values, computed outputs) are used:
   interpolation knots, hearing threshold knots, elliptic filter SOS
   coefficients, FIR design inputs) read from SQAT commit 00b449e
   (FluctuationStrength_Osses2016.m, calculate_a0.m,
-  Get_Hweight_fluctuation.m and the Hweight-*.mat files).
+  TerhardtExcitationPatterns.m, Get_Hweight_fluctuation.m and the
+  Hweight-*.mat files).
 - test/data/sqat_fs_crosscheck.jl: expected values computed by running
   SQAT's FluctuationStrength_Osses2016 (commit
   00b449e40599f1c1ef4abe0596094552213d57eb) under GNU Octave 11.3.0
