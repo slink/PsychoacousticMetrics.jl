@@ -25,14 +25,23 @@ Portions of this package's test data and source are derived from MoSQITo
   sound_level_meter/comp_spectrum.py and utils/time_segmentation.py
   (MoSQITo commit d990c33f94f1).
 
-Portions of this package's test data reference SQAT
-(https://github.com/ggrecow/SQAT), licensed under CC BY-NC 4.0. No SQAT
-source code, audio, or other CC BY-NC-licensed material is reproduced or
-redistributed by this package; only numeric behavioral facts are used:
+Portions of this package's test data and source reference SQAT
+(https://github.com/ggrecow/SQAT), licensed under CC BY-NC 4.0, and the
+model of Osses, García & Kohlrausch (2016), doi:10.1121/2.0000410, as
+described in A. Osses Vecchi's PhD thesis (TU/e, 2018), Appendix B. No
+SQAT source code, audio, or other CC BY-NC-licensed material is
+reproduced or redistributed by this package; only numeric behavioral
+facts (parameter values, computed outputs) are used:
 
+- src/fluctuation_strength_tables.jl,
+  src/fluctuation_strength_fir.jl: numeric parameter values (gzi and a0
+  interpolation knots, hearing threshold knots, elliptic filter SOS
+  coefficients, FIR design inputs) read from SQAT commit 00b449e
+  (FluctuationStrength_Osses2016.m, calculate_a0.m,
+  Get_Hweight_fluctuation.m and the Hweight-*.mat files).
 - test/data/sqat_fs_crosscheck.jl: expected values computed by running
   SQAT's FluctuationStrength_Osses2016 (commit
-  00b449e40599f1c1ef4abe0596094552213d57eb) under Octave on signals
-  synthesized entirely by this package's own test generator
-  (test/support/fs_stimuli.jl) — a numeric cross-check fixture, not
-  transcribed code.
+  00b449e40599f1c1ef4abe0596094552213d57eb) under GNU Octave 11.3.0
+  (octave-signal 1.4.7) on signals synthesized entirely by this
+  package's own test generator (test/support/fs_stimuli.jl) — a numeric
+  cross-check fixture, not transcribed code.

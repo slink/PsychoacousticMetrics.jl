@@ -1,7 +1,7 @@
 name = "PsychoacousticMetrics"
 uuid = "c3f1bcc2-aba4-488e-81ce-2127bac789a7"
 authors = ["slink"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
