@@ -54,7 +54,15 @@ isdefined(@__MODULE__, :fs_am_tone) ||
     include(joinpath(@__DIR__, "support", "fs_stimuli.jl"))
 
 @testset "cross-check vs SQAT FluctuationStrength_Osses2016" begin
-    include(joinpath(@__DIR__, "data", "sqat_fs_crosscheck.jl"))
+    # Guarded: test_fluctuation_strength.jl already includes this fixture.
+    # Re-including would REDEFINE const SQAT_FS_CASES — documented UB on
+    # Julia ≤ 1.11 ("may fail, cause incorrect answers, or produce other
+    # errors"), and the empirical trigger of a GC abort (SIGABRT in
+    # gc_mark_outrefs) on 1.10.11 once enough GC cycles separate the
+    # redefinition from its use. Julia 1.12's binding partitioning makes
+    # rebinding well-defined, which is why the crash was 1.10-only.
+    isdefined(@__MODULE__, :SQAT_FS_CASES) ||
+        include(joinpath(@__DIR__, "data", "sqat_fs_crosscheck.jl"))
     rtols = Dict(                     # measured under Pkg.test, see header table
         "anchor_44k" => 1e-6, "anchor_48k" => 1e-6, "am_8hz_70db" => 1e-6,
         "fm_tone_4hz" => 1e-6, "am_bbn_4hz" => 1e-6,
