@@ -12,10 +12,12 @@ ZwickerLoudness = "08868560-fde5-4d5c-a6ad-ef47176ecf8c"
 FFTW = "1"
 Statistics = "1"
 ZwickerLoudness = "0.2"
+ZwickerLoudnessAudio = "0.2"
 julia = "1.10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+ZwickerLoudnessAudio = "148fbc6a-b99d-460a-8261-c15b9908ee84"
 
 [targets]
-test = ["Test"]
+test = ["Test", "ZwickerLoudnessAudio"]

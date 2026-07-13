@@ -1,5 +1,6 @@
 using PsychoacousticMetrics
 using ZwickerLoudness
+using ZwickerLoudnessAudio
 using Test
 
 @testset "PsychoacousticMetrics" begin
