@@ -46,3 +46,28 @@ facts (parameter values, computed outputs) are used:
   (octave-signal 1.4.7) on signals synthesized entirely by this
   package's own test generator (test/support/fs_stimuli.jl) — a numeric
   cross-check fixture, not transcribed code.
+
+Portions of this package's test data and source reference SQAT
+(https://github.com/ggrecow/SQAT), licensed under CC BY-NC 4.0, and
+the model of Widmann (1992, doctoral thesis, TU München; formula
+p. 66), identified per Lotinga & Torija (2025), JASA 157(5):3282-
+3285. No SQAT source code, audio, or other CC BY-NC-licensed
+material is reproduced or redistributed by this package; only
+numeric behavioral facts (formula constants, computed outputs) are
+used:
+
+- src/psychoacoustic_annoyance.jl: formula constants (the S > 1.75
+  threshold, 2.18, the 0.4/0.6 weights, N^0.4, log10(N+10)/4) read
+  from SQAT commit 00b449e
+  (PsychoacousticAnnoyance_Widmann1992_from_percentile.m); the
+  Inf/NaN-zeroing construct is likewise cited as a structural fact,
+  not transcribed code.
+- test/data/sqat_pa_crosscheck.jl: expected values computed by
+  running SQAT commit 00b449e40599f1c1ef4abe0596094552213d57eb, both
+  PsychoacousticAnnoyance_Widmann1992_from_percentile.m (840-case
+  formula grid) and the signal-level
+  PsychoacousticAnnoyance_Widmann1992.m (4 cases, vendoring PA plus
+  SQAT's own N5/S5/R5/FS5 percentile values), under GNU Octave 11.3.0
+  (octave-signal 1.4.7) on signals synthesized entirely by this
+  package's own test generator (test/support/fs_stimuli.jl) —
+  numeric, values-only cross-check fixtures, not transcribed code.

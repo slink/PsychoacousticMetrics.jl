@@ -52,7 +52,12 @@ for the wrapper that composes this ecosystem's four stationary metrics
 The log base in `w_S` is unspecified in Widmann's thesis; log₁₀ follows
 Fastl & Zwicker and subsequent literature (SQAT's implementation likewise
 uses `log10`). The `S > 1.75` threshold is STRICT (pinned against the
-oracle: `S == 1.75` takes the `w_S = 0` branch). `w_FR` is computed by
+oracle: `S == 1.75` takes the `w_S = 0` branch). The reference also zeroes
+any non-finite `w_S` (`ws(isinf(ws)|isnan(ws)) = 0`, parallel to the
+`w_FR` construct below); this package replicates it for fidelity even
+though it is dead code here — `w_S` can only go non-finite via a
+non-finite `S` or `N`, and both are already rejected by this function's
+own guards below. `w_FR` is computed by
 direct division (not guarded against `N = 0`) and then has any
 non-finite result zeroed — replicating the reference's
 `wfr(isinf(wfr)|isnan(wfr)) = 0` construct exactly, including the `N = 0,

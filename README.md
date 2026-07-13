@@ -22,7 +22,7 @@ spl = [60, 62, 65, 68, 70, 72, 74, 75, 73, 71,
 
 result = zwicker_loudness(spl)
 sharpness(result)                      # DIN 45692 sharpness [acum]
-sharpness(result; weighting=:aures)    # :din (default), :aures, :bismarck, :fastl
+sharpness(result; weighting=:aures)    # :din (default), :aures/:bismarck/:fastl
 ```
 
 From an audio file, compose with
@@ -68,6 +68,83 @@ is defined to be 1 vacil. `fs` must be 44100 or 48000 Hz (the
 reference model ships precomputed envelope filters for those rates
 only) — resample other rates first.
 
+### Psychoacoustic annoyance
+
+Psychoacoustic annoyance (PA) [au] per **Widmann (1992)**, doctoral
+thesis, TU München (formula p. 66) — widely known as "Zwicker
+psychoacoustic annoyance" and commonly misattributed to Fastl &
+Zwicker's *Psychoacoustics: Facts and Models* (the model is the one
+that book popularized, not originated). See Lotinga & Torija (2025),
+JASA 157(5):3282-3285, for the correction, and Fastl & Zwicker Ch. 16
+as a widely-cited secondary description. Anchor: a 1 kHz tone at
+40 dB SPL is defined to be 1 au (Widmann thesis p. 65).
+
+Two surfaces are exported:
+
+```julia
+psychoacoustic_annoyance_widmann(N, S, R, FS)          -> Float64
+psychoacoustic_annoyance_widmann(signal, fs, loudness)
+    -> PsychoacousticAnnoyanceResult
+```
+
+The first is the pure formula on already-computed loudness `N`
+[sone], sharpness `S` [acum], roughness `R` [asper], and fluctuation
+strength `FS` [vacil]. The second composes this package's own
+metrics (`sharpness`, `roughness_dw`, `fluctuation_strength_osses`)
+plus a caller-supplied `ZwickerResult` for `N` on a single signal —
+typically produced by
+[ZwickerLoudnessAudio.jl](https://github.com/slink/ZwickerLoudnessAudio.jl):
+
+```julia
+using Statistics
+using ZwickerLoudnessAudio, PsychoacousticMetrics
+
+fs = 44100
+t = range(0, 5, length = 5fs)
+signal = sin.(2π * 1000 .* t)
+signal .*= 2e-5 * 10^(40 / 20) / std(signal)   # 1 kHz tone, 40 dB SPL
+
+loudness = loudness_zwst(signal, fs)
+result = psychoacoustic_annoyance_widmann(signal, fs, loudness)
+```
+
+Output of this exact run:
+
+```
+result.pa                   = 1.0142921749776441
+result.loudness             = 1.014
+result.sharpness            = 1.0324589374115618
+result.roughness            = 0.00015961445927174095
+result.fluctuation_strength = 9.285797426192075e-5
+result.convention           = stationary
+```
+
+(~1.4% from the 1 au anchor, in the same direction and order of
+magnitude as SQAT's own reference implementation misses it by.)
+
+The canonical Widmann model takes the 5th-percentile (`N5`, `S5`,
+`R5`, `FS5`) of each metric's time-varying course over a signal; the
+wrapper above uses whole-signal *stationary* values instead (ISO
+532-1 Method 1 loudness, and this package's stationary sharpness/
+roughness/fluctuation-strength), so it is a documented
+**approximation** of the canonical percentile convention, not a
+reproduction of it (`result.convention == :stationary` records this
+explicitly). A percentile-based path is planned now that
+[ZwickerLoudness.jl](https://github.com/slink/ZwickerLoudness.jl)
+v0.3.0 has shipped time-varying loudness, giving this package an
+`N(t)` course to take the 5th percentile of.
+
+`R` and `FS` enter the wrapper's formula with their raw, signed
+values, mirroring SQAT's signal-level reference implementation,
+which does not clamp its percentile components before combining
+them. On near-stationary tones `roughness_dw`/
+`fluctuation_strength_osses` can return a tiny negative value (model
+noise around a true zero, not a bug — SQAT's own reference output
+shows the identical artifact on the identical stimulus); the wrapper
+passes that signed value straight into the formula rather than
+clamping it, so `PsychoacousticAnnoyanceResult`'s `roughness`/
+`fluctuation_strength` fields can be (very slightly) negative.
+
 ## Conformance
 
 Tested against all 41 DIN 45692:2009 chapter-6 reference signals
@@ -96,14 +173,22 @@ conformance test's header, not a bug in this package).
 
 ## Roadmap
 
-Psychoacoustic annoyance is planned next for this package.
-Time-varying loudness (ISO 532-1 Method 2) belongs in
-ZwickerLoudness.jl.
+v0.4 adds **psychoacoustic annoyance** (Widmann, 1992), composing
+this package's own loudness/sharpness/roughness/fluctuation-strength
+metrics into a stationary approximation of the model — see
+[Psychoacoustic annoyance](#psychoacoustic-annoyance) above.
+
+Next: a **percentile-based** psychoacoustic annoyance path (`N5`,
+`S5`, `R5`, `FS5`, matching the canonical Widmann convention exactly
+rather than approximating it), now that ZwickerLoudness.jl v0.3.0 has
+shipped time-varying loudness (ISO 532-1 Method 2) for this package
+to draw a 5th-percentile `N(t)` from.
 
 ## License
 
 MIT. Test data, the roughness implementation, and the Fastl/Bark/roughness
 weighting tables are derived from MoSQITo (Apache-2.0). Fluctuation
-strength's parameter tables and cross-check fixtures reference SQAT
+strength's parameter tables and psychoacoustic annoyance's formula
+constants, plus both metrics' cross-check fixtures, reference SQAT
 (CC BY-NC 4.0) as factual data only — no code is reused. See
 `test/data/NOTICE`.
