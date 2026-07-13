@@ -6,6 +6,7 @@ using FFTW: fft, ifft
 
 export sharpness, roughness_dw, RoughnessResult
 export fluctuation_strength_osses, FluctuationStrengthResult
+export psychoacoustic_annoyance_widmann, PsychoacousticAnnoyanceResult
 
 include("bark.jl")
 include("roughness_dw_tables.jl")
@@ -15,5 +16,6 @@ include("fluctuation_strength_osses.jl")
 include("weighting_fastl.jl")
 include("sharpness.jl")
 include("roughness_dw.jl")
+include("psychoacoustic_annoyance.jl")
 
 end # module
