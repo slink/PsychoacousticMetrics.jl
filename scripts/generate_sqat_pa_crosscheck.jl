@@ -6,7 +6,7 @@
 #
 #   1. SQAT_PA_FORMULA_CASES: a non-negative (N, S, R, FS) grid (840
 #      cases; the reference goes complex on negative inputs — see
-#      .superpowers/sdd/pa-oracle-pins.md — so the grid excludes them)
+#      .superpowers/sdd/ppa-pins.md — so the grid excludes them)
 #      through `PsychoacousticAnnoyance_Widmann1992_from_percentile`.
 #   2. SQAT_PA_SIGNAL_CASES: steady/AM tones synthesized with this
 #      package's own stimulus generator (test/support/fs_stimuli.jl's
@@ -17,10 +17,12 @@
 #      `PsychoacousticAnnoyance_Widmann1992`, vendoring PA together with
 #      SQAT's own N5/S5/R5/FS5 percentile values so any wrapper deviation
 #      (Task 3) is attributable per-component before any tolerance is set.
+#      Includes two 4 s, 48 kHz cases (steady_1k_60db_48k, am_4hz_60db_48k)
+#      added for the percentile-PA rig (the latter is the R-lineage probe
+#      — SQAT's Roughness_Daniel1997 vs this package's roughness_dw).
 #
 # Requires: Octave with the octave-signal package installed, and the
-# pinned checkout at /tmp/sqat-pinned (see
-# .superpowers/sdd/pa-oracle-pins.md Step 1).
+# pinned checkout at /tmp/sqat-pinned (see .superpowers/sdd/ppa-pins.md).
 #
 # Usage: julia --project=. scripts/generate_sqat_pa_crosscheck.jl
 include(joinpath(@__DIR__, "..", "test", "support", "fs_stimuli.jl"))
@@ -95,8 +97,10 @@ const SIGNAL_CASE_DEFS = [
     ("steady_1k_60db", 1000, 0, 60, 5.0, 44100),
     ("am_4hz_60db", 1000, 4, 60, 5.0, 44100),         # FS anchor signal (mdepth=1) — informational, modulated
     ("steady_1k_40db_48k", 1000, 0, 40, 5.0, 48000),  # anchor tone at the other supported fs
+    ("steady_1k_60db_48k", 1000, 0, 60, 4.0, 48000),  # percentile-PA rig: 48 kHz steady tone
+    ("am_4hz_60db_48k", 1000, 4, 60, 4.0, 48000),     # percentile-PA rig: 48 kHz modulated tone (R-lineage probe)
 ]
-signal_mdepth(name) = name == "am_4hz_60db" ? 1.0 : 0.0
+signal_mdepth(name) = name in ("am_4hz_60db", "am_4hz_60db_48k") ? 1.0 : 0.0
 
 signal_manifest_entries = String[]
 for (name, fc, fmod, spl, dur, fs) in SIGNAL_CASE_DEFS
@@ -124,7 +128,7 @@ push!(lines, "# BY-NC, github.com/ggrecow/SQAT @ 00b449e40599f1c1ef4abe059609455
 push!(lines, "# under Octave $octave_version (octave-signal $signal_version). Pure scalar")
 push!(lines, "# arithmetic — any disagreement with `psychoacoustic_annoyance_widmann` is a")
 push!(lines, "# transcription bug, not a tolerance question. Grid is non-negative only (the")
-push!(lines, "# reference goes complex on negative inputs, see pa-oracle-pins.md).")
+push!(lines, "# reference goes complex on negative inputs, see ppa-pins.md).")
 push!(lines, "const SQAT_PA_FORMULA_CASES = [")
 for i in 1:length(formula_grid)
     c = formula_grid[i]
@@ -139,10 +143,14 @@ push!(lines, "# ZwickerLoudness field_type=:free default), time_skip=0 (steady-s
 push!(lines, "# no onset transient to discard), on signals synthesized by this package's own")
 push!(lines, "# fs_am_tone (test/support/fs_stimuli.jl) with mdepth=0 for the steady tones")
 push!(lines, "# (collapses the AM envelope to the constant 1, verified by direct RMS check —")
-push!(lines, "# see pa-oracle-pins.md) and mdepth=1 for am_4hz_60db (the FS anchor signal,")
-push!(lines, "# vendored for information; not a steady tone). pa = SQAT's OUT.ScalarPA; N5/S5/")
-push!(lines, "# R5/FS5 = OUT.L.N5 / OUT.S.S5 / OUT.R.R5 / OUT.FS.FS5 — vendored so any wrapper")
-push!(lines, "# deviation (Task 3) is attributable per-component before any tolerance is set.")
+push!(lines, "# see ppa-pins.md) and mdepth=1 for am_4hz_60db/am_4hz_60db_48k (the FS anchor")
+push!(lines, "# signal and its 48 kHz counterpart; not steady tones — the 48 kHz one is the")
+push!(lines, "# R-lineage probe for the percentile-PA rig: SQAT's Roughness_Daniel1997 vs this")
+push!(lines, "# package's roughness_dw, see ppa-pins.md). steady_1k_60db_48k/am_4hz_60db_48k")
+push!(lines, "# are 4 s (all other cases are 5 s); see ppa-pins.md for why. pa = SQAT's")
+push!(lines, "# OUT.ScalarPA; N5/S5/R5/FS5 = OUT.L.N5 / OUT.S.S5 / OUT.R.R5 / OUT.FS.FS5 —")
+push!(lines, "# vendored so any wrapper deviation (Task 3) is attributable per-component")
+push!(lines, "# before any tolerance is set.")
 push!(lines, "const SQAT_PA_SIGNAL_CASES = [")
 for (name, fc, fmod, spl, dur, fs) in SIGNAL_CASE_DEFS
     text = read(joinpath(signal_output_dir, "$name.json"), String)
