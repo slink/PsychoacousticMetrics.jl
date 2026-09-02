@@ -7,10 +7,12 @@
 Psychoacoustic sound-quality metrics for Julia, built on
 [ZwickerLoudness.jl](https://github.com/slink/ZwickerLoudness.jl).
 
-v0.3 implements **sharpness** [acum] per **DIN 45692:2009** (with Aures,
+v0.5 implements **sharpness** [acum] per **DIN 45692:2009** (with Aures,
 von Bismarck, and Fastl variants), **roughness** [asper] per
-**Daniel & Weber (1997)** as implemented by MoSQITo, and **fluctuation
-strength** [vacil] per **Osses, García & Kohlrausch (2016)**.
+**Daniel & Weber (1997)** as implemented by MoSQITo, **fluctuation
+strength** [vacil] per **Osses, García & Kohlrausch (2016)**, and
+**psychoacoustic annoyance** [au] per **Widmann (1992)** in both its
+canonical percentile convention and a stationary approximation.
 
 ## Quick start
 
@@ -80,21 +82,80 @@ JASA 157(5):3282-3285, for the correction, and Fastl & Zwicker Ch. 16
 as a widely-cited secondary description. Anchor: a 1 kHz tone at
 40 dB SPL is defined to be 1 au (Widmann thesis p. 65).
 
-Two surfaces are exported:
+Three surfaces are exported:
 
 ```julia
 psychoacoustic_annoyance_widmann(N, S, R, FS)          -> Float64
-psychoacoustic_annoyance_widmann(signal, fs, loudness)
-    -> PsychoacousticAnnoyanceResult
+psychoacoustic_annoyance_widmann(signal, fs, tv::ZwickerTimeVaryingResult)
+    -> PsychoacousticAnnoyanceResult   # convention = :percentile
+psychoacoustic_annoyance_widmann(signal, fs, loudness::ZwickerResult)
+    -> PsychoacousticAnnoyanceResult   # convention = :stationary
 ```
 
 The first is the pure formula on already-computed loudness `N`
 [sone], sharpness `S` [acum], roughness `R` [asper], and fluctuation
-strength `FS` [vacil]. The second composes this package's own
-metrics (`sharpness`, `roughness_dw`, `fluctuation_strength_osses`)
-plus a caller-supplied `ZwickerResult` for `N` on a single signal —
-typically produced by
-[ZwickerLoudnessAudio.jl](https://github.com/slink/ZwickerLoudnessAudio.jl):
+strength `FS` [vacil].
+
+#### Percentile convention (canonical)
+
+The canonical Widmann model takes the value exceeded 5 % of the time
+(`N5`, `S5`, `R5`, `FS5`) of each metric's time-varying course over a
+signal. The `ZwickerTimeVaryingResult` method implements exactly that:
+`N5` comes from the caller-supplied time-varying loudness (ISO 532-1
+Method 2, from
+[ZwickerLoudnessAudio.jl](https://github.com/slink/ZwickerLoudnessAudio.jl)'s
+`loudness_zwtv`), `S5` from DIN 45692 sharpness applied to every 2 ms
+specific-loudness frame of that same result, and `R5`/`FS5` from
+`roughness_dw`/`fluctuation_strength_osses`'s per-frame tracks. Each
+percentile is taken over the metric's own native frame rate, as in the
+reference implementation. `fs` must be 48000 Hz (the time-varying
+loudness front end is 48 kHz-only) and `tv` must have been computed
+from the same signal — a duration mismatch beyond one 2 ms loudness
+block throws `ArgumentError`.
+
+```julia
+using Statistics
+using ZwickerLoudnessAudio, PsychoacousticMetrics
+
+fs = 48000
+t = range(0, 5, length = 5fs)
+signal = sin.(2π * 1000 .* t)
+signal .*= 2e-5 * 10^(40 / 20) / std(signal)   # 1 kHz tone, 40 dB SPL
+
+tv = loudness_zwtv(signal, fs)
+result = psychoacoustic_annoyance_widmann(signal, fs, tv)
+```
+
+Output of this exact run:
+
+```
+result.pa                   = 1.003160292953811
+result.loudness             = 1.000999999999856
+result.sharpness            = 1.0357392751279124
+result.roughness            = 0.00016138026780951667
+result.fluctuation_strength = 0.002233844522856296
+result.convention           = percentile
+```
+
+(0.3 % from the 1 au anchor on this 5 s tone; the suite's 4 s
+cross-check case lands 0.1 % from it.)
+
+Percentiles are Hyndman–Fan type 7 (`Statistics.quantile(track,
+0.95)`, the same definition ZwickerLoudness.jl uses for its own `N5`).
+SQAT's reference uses a nearest-rank selection with no interpolation
+instead; on the 2 ms loudness/sharpness tracks the two agree to ~1e-9,
+but on the coarse ~200 ms fluctuation-strength track (a dozen frames
+on a 4 s signal) the gap is a full order-statistic step. The
+cross-check tests measure and attribute that, the roughness-lineage
+difference (MoSQITo vs. canonical MATLAB Daniel & Weber), and the
+loudness-chain difference per component before any tolerance is set.
+
+#### Stationary approximation
+
+The `ZwickerResult` method composes this package's own metrics
+(`sharpness`, `roughness_dw`, `fluctuation_strength_osses`) plus a
+caller-supplied stationary `ZwickerResult` for `N` on a single signal —
+typically produced by `loudness_zwst`:
 
 ```julia
 using Statistics
@@ -123,27 +184,26 @@ result.convention           = stationary
 (~1.4% from the 1 au anchor, in the same direction and order of
 magnitude as SQAT's own reference implementation misses it by.)
 
-The canonical Widmann model takes the 5th-percentile (`N5`, `S5`,
-`R5`, `FS5`) of each metric's time-varying course over a signal; the
-wrapper above uses whole-signal *stationary* values instead (ISO
-532-1 Method 1 loudness, and this package's stationary sharpness/
-roughness/fluctuation-strength), so it is a documented
-**approximation** of the canonical percentile convention, not a
+This wrapper uses whole-signal *stationary* values (ISO 532-1 Method 1
+loudness, and this package's stationary sharpness/roughness/
+fluctuation-strength) in place of the canonical percentiles, so it is
+a documented **approximation** of the percentile convention, not a
 reproduction of it (`result.convention == :stationary` records this
-explicitly). A percentile-based path is planned now that
-[ZwickerLoudness.jl](https://github.com/slink/ZwickerLoudness.jl)
-v0.3.0 has shipped time-varying loudness, giving this package an
-`N(t)` course to take the 5th percentile of.
+explicitly). It works at 44.1 kHz as well as 48 kHz. On steady tones
+the two conventions nearly coincide (~1.4 % PA difference on the
+anchor tone, measured); on modulated signals they diverge by design,
+since `N5` of a modulated signal sits near the modulation crests
+rather than at the mean.
 
-`R` and `FS` enter the wrapper's formula with their raw, signed
-values, mirroring SQAT's signal-level reference implementation,
-which does not clamp its percentile components before combining
-them. On near-stationary tones `roughness_dw`/
+In both wrappers `R` and `FS` enter the formula with their raw,
+signed values, mirroring SQAT's signal-level reference
+implementation, which does not clamp its percentile components before
+combining them. On near-stationary tones `roughness_dw`/
 `fluctuation_strength_osses` can return a tiny negative value (model
 noise around a true zero, not a bug — SQAT's own reference output
-shows the identical artifact on the identical stimulus); the wrapper
-passes that signed value straight into the formula rather than
-clamping it, so `PsychoacousticAnnoyanceResult`'s `roughness`/
+shows the identical artifact on the identical stimulus); the wrappers
+pass that signed value straight into the formula rather than clamping
+it, so `PsychoacousticAnnoyanceResult`'s `roughness`/
 `fluctuation_strength` fields can be (very slightly) negative.
 
 ## Conformance
@@ -159,31 +219,48 @@ specific loudness (`0.1 * sum`), not `ZwickerResult.loudness` — see the
 
 Roughness is tested against the Zwicker & Fastl reference curves on
 MoSQITo's validation grid (7 carrier × 11 modulation frequencies, ±0.1
-asper) and cross-checked against MoSQITo's `roughness_dw` on identical
-signals.
+asper; 5 points at fc = 2 kHz are `@test_broken`, an upstream model
+behavior that MoSQITo itself shows) and cross-checked against
+MoSQITo's `roughness_dw` on identical signals. Against the Daniel &
+Weber curves themselves the suite reports, informationally, 63 of 77
+grid points within 30 % of the reference.
 
 Fluctuation strength is tested against Fastl & Zwicker's AM/FM
-reference curves (Osses 2018 thesis Table B.1, ±30% of reference) and
-cross-checked against SQAT's `FluctuationStrength_Osses2016`, run
-under Octave, on identical signals. Two known deviations: the
-reference model overestimates FM tones with fmod > 4 Hz (thesis
-§B.4.1), and on the AM-tone curve the fmod = 2 and 32 Hz shoulder/tail
-points diverge from the published values in the reference model
-itself — both confirmed against a direct Octave oracle run (see the
-conformance test's header, not a bug in this package).
+reference curves (Osses 2018 thesis Table B.1) with a within-30 %-of-
+reference gate, and cross-checked against SQAT's
+`FluctuationStrength_Osses2016`, run under Octave, on identical
+signals. The honest tally the suite prints is 8 of 18 Table B.1
+points within 30 %: the reference model overestimates FM tones with
+fmod > 4 Hz (thesis §B.4.1), on the AM-tone curve the fmod = 2 and
+32 Hz shoulder/tail points diverge from the published values in the
+reference model itself — both confirmed against a direct Octave
+oracle run — and all six AM-broadband-noise points are skipped because
+this package's noise stimulus does not reproduce SQAT's band-limited
+one (see the conformance test's header). The Julia-vs-SQAT
+cross-check on identical signals holds to rtol 1e-6, so these are
+model/stimulus deviations, not bugs in this package.
+
+Psychoacoustic annoyance is cross-checked against SQAT's
+`PsychoacousticAnnoyance_Widmann1992` (an 840-case formula grid,
+reproduced bit-exactly, plus six signal-level cases with SQAT's own
+`N5`/`S5`/`R5`/`FS5` vendored so every deviation is attributed per
+component) and gated at the published 1 au anchor: on the 4 s
+cross-check case the percentile convention lands 0.1 % from it and
+the stationary approximation 0.8 %; on the README's 5 s examples the
+figures are 0.3 % and 1.4 %.
 
 ## Roadmap
 
-v0.4 adds **psychoacoustic annoyance** (Widmann, 1992), composing
-this package's own loudness/sharpness/roughness/fluctuation-strength
-metrics into a stationary approximation of the model — see
-[Psychoacoustic annoyance](#psychoacoustic-annoyance) above.
+v0.4 added **psychoacoustic annoyance** (Widmann, 1992) as a
+stationary approximation; v0.5 adds the canonical **percentile**
+convention (`N5`, `S5`, `R5`, `FS5`) on top of ZwickerLoudness.jl
+v0.3's time-varying loudness — see
+[Psychoacoustic annoyance](#psychoacoustic-annoyance) above. With
+that, the core Zwicker-family metric set (loudness, sharpness,
+roughness, fluctuation strength, annoyance) is complete.
 
-Next: a **percentile-based** psychoacoustic annoyance path (`N5`,
-`S5`, `R5`, `FS5`, matching the canonical Widmann convention exactly
-rather than approximating it), now that ZwickerLoudness.jl v0.3.0 has
-shipped time-varying loudness (ISO 532-1 Method 2) for this package
-to draw a 5th-percentile `N(t)` from.
+Candidates for what comes next: test-suite hardening (Aqua.jl,
+CompatHelper), and tonality.
 
 ## License
 
