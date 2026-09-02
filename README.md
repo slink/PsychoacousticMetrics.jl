@@ -219,26 +219,31 @@ specific loudness (`0.1 * sum`), not `ZwickerResult.loudness` — see the
 
 Roughness is tested against the Zwicker & Fastl reference curves on
 MoSQITo's validation grid (7 carrier × 11 modulation frequencies, ±0.1
-asper; 5 points at fc = 2 kHz are `@test_broken`, an upstream model
-behavior that MoSQITo itself shows) and cross-checked against
-MoSQITo's `roughness_dw` on identical signals. Against the Daniel &
+asper) and cross-checked against MoSQITo's `roughness_dw` on
+identical signals. Five points at fc = 2 kHz miss the ±0.1 asper gate;
+MoSQITo itself misses them by the same amount (and overshoots Daniel &
+Weber's own curve there by 15–31 %), so those five are gated on
+agreement with MoSQITo to 5e-3 asper instead, as documented in the
+test. Against the Daniel &
 Weber curves themselves the suite reports, informationally, 63 of 77
 grid points within 30 % of the reference.
 
-Fluctuation strength is tested against Fastl & Zwicker's AM/FM
-reference curves (Osses 2018 thesis Table B.1) with a within-30 %-of-
-reference gate, and cross-checked against SQAT's
+Fluctuation strength is cross-checked against SQAT's
 `FluctuationStrength_Osses2016`, run under Octave, on identical
-signals. The honest tally the suite prints is 8 of 18 Table B.1
-points within 30 %: the reference model overestimates FM tones with
-fmod > 4 Hz (thesis §B.4.1), on the AM-tone curve the fmod = 2 and
-32 Hz shoulder/tail points diverge from the published values in the
-reference model itself — both confirmed against a direct Octave
-oracle run — and all six AM-broadband-noise points are skipped because
-this package's noise stimulus does not reproduce SQAT's band-limited
-one (see the conformance test's header). The Julia-vs-SQAT
-cross-check on identical signals holds to rtol 1e-6, so these are
-model/stimulus deviations, not bugs in this package.
+signals: 26 cases including all 18 points of Fastl & Zwicker's AM/FM
+reference grid (Osses 2018 thesis Table B.1), each reproduced to
+rtol 1e-6 (measured 4e-9). Against the published curves themselves
+the suite reports, informationally, 8 of 18 points within 30 %, and
+gates the seven where the reference model meets the curve. The other
+points are misses of the reference model, not of this package: SQAT's
+own validation figures show the same misses on its dataset (FM tones
+with fmod > 4 Hz overestimated 3–4x, thesis §B.4.1; the AM-tone
+fmod = 2 and 32 Hz shoulder/tail points). The AM-broadband-noise row is
+not gated on the published curve because the dataset's noise
+convention differs from this package's stimulus in a way its file
+names do not reveal (same 20 Hz–16 kHz band; the model gives 2x the
+published values on ours and matches on theirs); see the conformance
+test's header.
 
 Psychoacoustic annoyance is cross-checked against SQAT's
 `PsychoacousticAnnoyance_Widmann1992` (an 840-case formula grid,

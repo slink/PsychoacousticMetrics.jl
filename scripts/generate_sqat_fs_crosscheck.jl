@@ -18,6 +18,8 @@ const SQAT_DIR = get(ENV, "SQAT_DIR", "/tmp/sqat-pinned")
 const CASES = [
     "anchor_44k", "anchor_48k", "am_8hz_70db", "fm_tone_4hz",
     "am_bbn_4hz", "stationary_anchor", "short_fallback", "tone_25bark",
+    # thesis Table B.1 grid, in test_conformance_fs_thesis.jl's order
+    ["thesis_$(kind)_$(fmod)hz" for kind in ("am", "fm", "bbn") for fmod in (1, 2, 4, 8, 16, 32)]...,
 ]
 
 isdir(SQAT_DIR) || error("pinned SQAT checkout not found at $SQAT_DIR — clone+checkout per Step 1 first")
