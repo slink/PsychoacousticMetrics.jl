@@ -198,6 +198,39 @@ header comments of `test/test_fluctuation_strength.jl`,
 The full working log they were taken from was scratch and was not
 retained.
 
+### 2.12 Thesis Table B.1 grid: oracle parity and published-curve misses
+
+Measured 2026-09-02 on the 18 stimuli `test_conformance_fs_thesis.jl`
+gates (`thesis_*` cases in `test/data/sqat_fs_crosscheck.jl`; AM tones
+1 kHz 70 dB, FM tones 1.5 kHz ±700 Hz 70 dB, AM noise 20 Hz–16 kHz 60 dB,
+all 4 s at 44.1 kHz, m = 1). "ours" and "SQAT" agree to ≤ 4.3e-10
+relative on the mean and ≤ 3.8e-9 per frame at every point, so the
+columns are shown once.
+
+| fmod [Hz] | AM ours = SQAT | AM published | FM ours = SQAT | FM published | BBN ours = SQAT | BBN published |
+|---|---|---|---|---|---|---|
+| 1 | 0.39756 | 0.39 | 0.84415 | 0.85 | 0.96704 | 1.12 |
+| 2 | 1.10960 | 0.84 | 1.48010 | 1.17 | 3.17191 | 1.58 |
+| 4 | 1.32002 | 1.25 | 2.21250 | 2.00 | 3.86208 | 1.80 |
+| 8 | 1.31123 | 1.30 | 2.59902 | 0.70 | 3.87646 | 1.57 |
+| 16 | 0.33803 | 0.36 | 1.21248 | 0.27 | 0.79499 | 0.48 |
+| 32 | 0.01614 | 0.06 | 0.05457 | 0.02 | 0.03391 | 0.14 |
+
+SQAT's own validation figures (`validation/FluctuationStrength_Osses2016/
+*/figs/*.png` in the pinned checkout, computed on its Zenodo dataset
+doi:10.5281/zenodo.7933206, CC BY 4.0) show, read off the plots: AM tones
+~0.38 / 1.13 / 1.32 / 1.31 / 0.32 / 0.01; FM tones ~0.58 / 1.30 / 2.0 /
+2.45 / 1.05 / 0.02; AM noise ~0.45 / 1.55 / 1.88 / 1.79 / 0.35 / 0.03. So
+the AM-tone and FM-tone misses are the reference model's own; our FM
+stimulus is not identical to the dataset's (1 Hz: 0.84 vs ~0.58); and the
+dataset's noise stimulus differs from ours in something other than
+bandwidth (its file names say `Fc-8010_BW-15980`, i.e. the same
+20 Hz–16 kHz band). Sensitivity of our noise stimulus at 4 Hz, 60 dB:
+m = 0.3 / 0.5 / 0.7 / 1.0 gives 0.42 / 1.15 / 2.17 / 3.88 vacil; RNG
+distribution, brick-wall vs none, 4 s vs 8 s and white vs pink shaping
+each move it by < 10 %. A fetch of the dataset to settle this was refused
+by Zenodo (HTTP 403 "unusual traffic", 2026-09-02); unresolved.
+
 ## 3. Psychoacoustic annoyance, stationary convention (v0.4.0)
 
 The working notes for the stationary-era rig (`pa-oracle-pins.md` and

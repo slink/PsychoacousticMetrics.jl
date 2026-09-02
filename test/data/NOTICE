@@ -45,7 +45,8 @@ facts (parameter values, computed outputs) are used:
   00b449e40599f1c1ef4abe0596094552213d57eb) under GNU Octave 11.3.0
   (octave-signal 1.4.7) on signals synthesized entirely by this
   package's own test generator (test/support/fs_stimuli.jl) — a numeric
-  cross-check fixture, not transcribed code.
+  cross-check fixture, not transcribed code. 26 cases: 8 rig cases plus
+  the 18-point thesis Table B.1 grid (`thesis_*`).
 
 Portions of this package's test data and source reference SQAT
 (https://github.com/ggrecow/SQAT), licensed under CC BY-NC 4.0, and
