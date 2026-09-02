@@ -219,9 +219,12 @@ specific loudness (`0.1 * sum`), not `ZwickerResult.loudness` — see the
 
 Roughness is tested against the Zwicker & Fastl reference curves on
 MoSQITo's validation grid (7 carrier × 11 modulation frequencies, ±0.1
-asper; 5 points at fc = 2 kHz are `@test_broken`, an upstream model
-behavior that MoSQITo itself shows) and cross-checked against
-MoSQITo's `roughness_dw` on identical signals. Against the Daniel &
+asper) and cross-checked against MoSQITo's `roughness_dw` on
+identical signals. Five points at fc = 2 kHz miss the ±0.1 asper gate;
+MoSQITo itself misses them by the same amount (and overshoots Daniel &
+Weber's own curve there by 15–31 %), so those five are gated on
+agreement with MoSQITo to 5e-3 asper instead, as documented in the
+test. Against the Daniel &
 Weber curves themselves the suite reports, informationally, 63 of 77
 grid points within 30 % of the reference.
 

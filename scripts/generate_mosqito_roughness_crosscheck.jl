@@ -18,6 +18,14 @@ cases = [
     ("mislabeled_fs",  48000, 1000.0, 70.0,  1.0, 60, 44100.0, 0.0),
     ("fc250_fm40",     48000,  250.0, 40.0,  1.5, 60, 48000.0, 0.0),
     ("fc2000_fm100",   48000, 2000.0, 100.0, 1.5, 60, 48000.0, 0.0),
+    # The remaining four fig-3 fc=2000 Hz points that miss the Zwicker &
+    # Fastl +-0.1 asper gate (test_conformance_dw_fig3.jl gates those five
+    # points on agreement with MoSQITo instead, since MoSQITo misses the
+    # same gate by the same amount).
+    ("fc2000_fm80",    48000, 2000.0,  80.0, 1.5, 60, 48000.0, 0.0),
+    ("fc2000_fm90",    48000, 2000.0,  90.0, 1.5, 60, 48000.0, 0.0),
+    ("fc2000_fm120",   48000, 2000.0, 120.0, 1.5, 60, 48000.0, 0.0),
+    ("fc2000_fm140",   48000, 2000.0, 140.0, 1.5, 60, 48000.0, 0.0),
 ]
 
 jsonvec(v) = string("[", join(string.(v), ","), "]")
@@ -32,4 +40,4 @@ open(tmp, "w") do io
     print(io, "[", join(entries, ","), "]")
 end
 out = joinpath(@__DIR__, "..", "test", "data", "mosqito_roughness_crosscheck.jl")
-run(`uv run --with mosqito --with numpy --with matplotlib python $(joinpath(@__DIR__, "crosscheck_roughness.py")) $tmp $out`)
+run(`uv run --with mosqito==1.2.1 --with numpy --with matplotlib python $(joinpath(@__DIR__, "crosscheck_roughness.py")) $tmp $out`)

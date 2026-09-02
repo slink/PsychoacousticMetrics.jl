@@ -80,7 +80,11 @@ isdefined(@__MODULE__, :am_sine) ||
 # overshoot (0.00223 asper at fc=2000/fmod=80). The fig-3 fc=2000 failures
 # are upstream model behavior, not our transcription.
 
-include(joinpath(@__DIR__, "data", "mosqito_roughness_crosscheck.jl"))
+# Guarded: test_conformance_dw_fig3.jl (earlier in runtests.jl) now includes
+# this fixture too, and re-including a const-defining file is the Julia
+# <= 1.11 const-reinclude landmine.
+isdefined(@__MODULE__, :MOSQITO_ROUGHNESS_CROSSCHECK) ||
+    include(joinpath(@__DIR__, "data", "mosqito_roughness_crosscheck.jl"))
 
 @testset "MoSQITo roughness cross-check" begin
     fs_synth = 48000
@@ -89,6 +93,10 @@ include(joinpath(@__DIR__, "data", "mosqito_roughness_crosscheck.jl"))
         "mislabeled_fs" => (1000.0, 70.0, 1.0),
         "fc250_fm40"    => (250.0, 40.0, 1.5),
         "fc2000_fm100"  => (2000.0, 100.0, 1.5),
+        "fc2000_fm80"   => (2000.0, 80.0, 1.5),
+        "fc2000_fm90"   => (2000.0, 90.0, 1.5),
+        "fc2000_fm120"  => (2000.0, 120.0, 1.5),
+        "fc2000_fm140"  => (2000.0, 140.0, 1.5),
     )
     # Per-case rtol per the header: 2.3e-4 for the anchor (100x measured,
     # dust-mechanism margin — see header); 1e-6 for mislabeled_fs (the
@@ -99,6 +107,13 @@ include(joinpath(@__DIR__, "data", "mosqito_roughness_crosscheck.jl"))
         "mislabeled_fs" => 1e-6,
         "fc250_fm40"    => 1e-2,
         "fc2000_fm100"  => 1e-2,
+        # The other four fig-3 fc=2000 Hz points (same FP-dust mechanism as
+        # fc2000_fm100; measured max per-frame rel dev 6.93e-3 / 1.04e-7 /
+        # 2.49e-3 / 4.73e-4 for fm 80/90/120/140, mosqito==1.2.1).
+        "fc2000_fm80"   => 1e-2,
+        "fc2000_fm90"   => 1e-2,
+        "fc2000_fm120"  => 1e-2,
+        "fc2000_fm140"  => 1e-2,
     )
     for (name, fs_analyze, overlap, R_expected) in MOSQITO_ROUGHNESS_CROSSCHECK
         fc, fm, dur = params[name]
