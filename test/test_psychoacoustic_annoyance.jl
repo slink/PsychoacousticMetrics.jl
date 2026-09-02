@@ -1,6 +1,6 @@
 # Formula cross-check vs SQAT's PsychoacousticAnnoyance_Widmann1992_from_percentile
 # (CC BY-NC, github.com/ggrecow/SQAT @ 00b449e40599f1c1ef4abe0596094552213d57eb),
-# oracle only — no code transcribed (see .superpowers/sdd/pa-oracle-pins.md).
+# oracle only — no code transcribed (see docs/oracle-pins.md §3).
 # Pure scalar arithmetic: any disagreement beyond the measured tolerance is a
 # transcription bug, not a tolerance question.
 
@@ -16,7 +16,7 @@ using Statistics: quantile
     @testset "cross-check vs SQAT (840-case grid)" begin
         # Measured max relative deviation across all 840 cases, this
         # machine: 0.0 exactly (identical bit patterns) — see
-        # .superpowers/sdd/pa-task-2-report.md. rtol kept at 1e-12 (pure
+        # docs/oracle-pins.md §3 (log not retained). rtol kept at 1e-12 (pure
         # scalar arithmetic; exceeding 1e-9 would indicate a transcription
         # bug, not a tolerance question).
         RTOL = 1e-12
@@ -27,7 +27,7 @@ using Statistics: quantile
     end
 
     @testset "N = 0 => PA = 0 exactly" begin
-        # Pinned (pa-oracle-pins.md Step 4): all 120 grid rows with N == 0.0
+        # Pinned (docs/oracle-pins.md §3): all 120 grid rows with N == 0.0
         # give pa == 0.0 exactly via the reference's Inf/NaN zeroing,
         # including the R = FS = 0 sub-case where wfr = Inf*0 = NaN before
         # zeroing.
@@ -42,7 +42,7 @@ using Statistics: quantile
     end
 
     @testset "threshold edge: strict S > 1.75" begin
-        # Pinned (pa-oracle-pins.md Step 4): S = 1.75 takes the ws = 0
+        # Pinned (docs/oracle-pins.md §3): S = 1.75 takes the ws = 0
         # branch (else); only S > 1.75 (e.g. 1.7500001) engages ws != 0.
         pa_175 = psychoacoustic_annoyance_widmann(4.0, 1.75, 0.3, 0.3)
         pa_below = psychoacoustic_annoyance_widmann(4.0, 1.0, 0.3, 0.3)
@@ -54,7 +54,7 @@ using Statistics: quantile
     end
 
     @testset "tiny N stays finite" begin
-        # Pinned (pa-oracle-pins.md Step 4): no epsilon guard needed beyond
+        # Pinned (docs/oracle-pins.md §3): no epsilon guard needed beyond
         # the documented Inf/NaN zeroing.
         pa = psychoacoustic_annoyance_widmann(1e-12, 2.5, 0.3, 0.3)
         @test isfinite(pa)
@@ -98,7 +98,7 @@ end
 # (measured reldev 0.0 on all four cases, this machine).
 #
 # CONVENTION GAP, measured and attributed BEFORE any tolerance below was set
-# (this machine, 2026-07-13; script log in .superpowers/sdd/pa-task-3-report.md):
+# (this machine, 2026-07-13; script log not retained; see docs/oracle-pins.md §3):
 # our wrapper composes whole-signal STATIONARY components, SQAT's signal-level
 # PA composes 5th-PERCENTILE components (N5/S5/R5/FS5, vendored per case).
 # Per-component deviations of ours vs SQAT's vendored percentiles:
@@ -289,13 +289,13 @@ end
 # PERCENTILE SEMANTICS: ours is Statistics.quantile(track, 0.95) — Hyndman-Fan
 # type 7, matching the ZwickerLoudness kernel's own N5 definition. SQAT's is
 # nearest-rank selection with NO interpolation (get_exceeded_value @ pin:
-# sort(track)[floor(0.95*N)] — see ppa-pins.md §2; NOT MATLAB prctile). On
+# sort(track)[floor(0.95*N)] — see docs/oracle-pins.md §4.2; NOT MATLAB prctile). On
 # fine tracks (N(t)/S(t): 2000+ frames @ 2 ms) the two coincide to <2e-9; on
 # the coarse FS(t) track (12-17 native frames on these 4-5 s signals) the gap
 # is a full order-statistic step — see the FS5 rows below.
 #
 # PER-COMPONENT ATTRIBUTION, measured BEFORE any tolerance was set (this
-# machine, 2026-07-13; script log in .superpowers/sdd/ppa-task-2-report.md).
+# machine, 2026-07-13; see docs/oracle-pins.md §4.6).
 # Ours (type-7 percentiles of our tracks) vs SQAT's vendored N5/S5/R5/FS5:
 #
 #   case                 N5 reldev  S5 reldev  R5 absdev  FS5 absdev  PA reldev
@@ -371,7 +371,7 @@ function pa_pct_case(name)
     return sig, Float64(fs), tv, psychoacoustic_annoyance_widmann(sig, Float64(fs), tv)
 end
 
-# SQAT's percentile selection (get_exceeded_value @ pin, ppa-pins.md §2):
+# SQAT's percentile selection (get_exceeded_value @ pin, docs/oracle-pins.md §4.2):
 # the floor(0.95*N)-th smallest sample, clamped to index 1; no interpolation.
 sqat_nearest_rank_95(track) = sort(track)[max(floor(Int, 0.95 * length(track)), 1)]
 
@@ -510,7 +510,7 @@ sqat_nearest_rank_95(track) = sort(track)[max(floor(Int, 0.95 * length(track)), 
         @test_throws ArgumentError psychoacoustic_annoyance_widmann(short, fs, tv)
         # ... while the matched pair passes DESPITE the ~1.5 ms natural gap
         # between length(signal)/fs and time_axis[end] (the front end's
-        # endpoint-inclusive axis decimated by 4 — ppa-pins.md §4), which the
+        # endpoint-inclusive axis decimated by 4 — docs/oracle-pins.md §4.5), which the
         # 2 ms bound must tolerate. Covered live by every pct_results entry;
         # asserted explicitly here on the measured gap:
         @test abs(length(sig) / fs - tv.time_axis[end]) <= 0.002

@@ -6,7 +6,7 @@
 #
 #   1. SQAT_PA_FORMULA_CASES: a non-negative (N, S, R, FS) grid (840
 #      cases; the reference goes complex on negative inputs — see
-#      .superpowers/sdd/ppa-pins.md — so the grid excludes them)
+#      docs/oracle-pins.md §4.3 — so the grid excludes them)
 #      through `PsychoacousticAnnoyance_Widmann1992_from_percentile`.
 #   2. SQAT_PA_SIGNAL_CASES: steady/AM tones synthesized with this
 #      package's own stimulus generator (test/support/fs_stimuli.jl's
@@ -22,7 +22,7 @@
 #      — SQAT's Roughness_Daniel1997 vs this package's roughness_dw).
 #
 # Requires: Octave with the octave-signal package installed, and the
-# pinned checkout at /tmp/sqat-pinned (see .superpowers/sdd/ppa-pins.md).
+# pinned checkout at /tmp/sqat-pinned (see docs/oracle-pins.md §1).
 #
 # Usage: julia --project=. scripts/generate_sqat_pa_crosscheck.jl
 include(joinpath(@__DIR__, "..", "test", "support", "fs_stimuli.jl"))
@@ -128,7 +128,7 @@ push!(lines, "# BY-NC, github.com/ggrecow/SQAT @ 00b449e40599f1c1ef4abe059609455
 push!(lines, "# under Octave $octave_version (octave-signal $signal_version). Pure scalar")
 push!(lines, "# arithmetic — any disagreement with `psychoacoustic_annoyance_widmann` is a")
 push!(lines, "# transcription bug, not a tolerance question. Grid is non-negative only (the")
-push!(lines, "# reference goes complex on negative inputs, see ppa-pins.md).")
+push!(lines, "# reference goes complex on negative inputs, see docs/oracle-pins.md §4.3).")
 push!(lines, "const SQAT_PA_FORMULA_CASES = [")
 for i in 1:length(formula_grid)
     c = formula_grid[i]
@@ -143,11 +143,11 @@ push!(lines, "# ZwickerLoudness field_type=:free default), time_skip=0 (steady-s
 push!(lines, "# no onset transient to discard), on signals synthesized by this package's own")
 push!(lines, "# fs_am_tone (test/support/fs_stimuli.jl) with mdepth=0 for the steady tones")
 push!(lines, "# (collapses the AM envelope to the constant 1, verified by direct RMS check —")
-push!(lines, "# see ppa-pins.md) and mdepth=1 for am_4hz_60db/am_4hz_60db_48k (the FS anchor")
+push!(lines, "# see docs/oracle-pins.md §4.4) and mdepth=1 for am_4hz_60db/am_4hz_60db_48k (the FS anchor")
 push!(lines, "# signal and its 48 kHz counterpart; not steady tones — the 48 kHz one is the")
 push!(lines, "# R-lineage probe for the percentile-PA rig: SQAT's Roughness_Daniel1997 vs this")
-push!(lines, "# package's roughness_dw, see ppa-pins.md). steady_1k_60db_48k/am_4hz_60db_48k")
-push!(lines, "# are 4 s (all other cases are 5 s); see ppa-pins.md for why. pa = SQAT's")
+push!(lines, "# package's roughness_dw, see docs/oracle-pins.md §4.6). steady_1k_60db_48k/am_4hz_60db_48k")
+push!(lines, "# are 4 s (all other cases are 5 s); see docs/oracle-pins.md §4.4 for why. pa = SQAT's")
 push!(lines, "# OUT.ScalarPA; N5/S5/R5/FS5 = OUT.L.N5 / OUT.S.S5 / OUT.R.R5 / OUT.FS.FS5 —")
 push!(lines, "# vendored so any wrapper deviation (Task 3) is attributable per-component")
 push!(lines, "# before any tolerance is set.")

@@ -6,7 +6,7 @@
 # under Octave 11.3.0 (octave-signal 1.4.7). Pure scalar
 # arithmetic — any disagreement with `psychoacoustic_annoyance_widmann` is a
 # transcription bug, not a tolerance question. Grid is non-negative only (the
-# reference goes complex on negative inputs, see ppa-pins.md).
+# reference goes complex on negative inputs, see docs/oracle-pins.md §4.3).
 const SQAT_PA_FORMULA_CASES = [
     (N = 0.0, S = 0.5, R = 0.0, FS = 0.0, pa = 0.0),
     (N = 0.0, S = 0.5, R = 0.0, FS = 0.05, pa = 0.0),
@@ -857,11 +857,11 @@ const SQAT_PA_FORMULA_CASES = [
 # no onset transient to discard), on signals synthesized by this package's own
 # fs_am_tone (test/support/fs_stimuli.jl) with mdepth=0 for the steady tones
 # (collapses the AM envelope to the constant 1, verified by direct RMS check —
-# see ppa-pins.md) and mdepth=1 for am_4hz_60db/am_4hz_60db_48k (the FS anchor
+# see docs/oracle-pins.md §4.4) and mdepth=1 for am_4hz_60db/am_4hz_60db_48k (the FS anchor
 # signal and its 48 kHz counterpart; not steady tones — the 48 kHz one is the
 # R-lineage probe for the percentile-PA rig: SQAT's Roughness_Daniel1997 vs this
-# package's roughness_dw, see ppa-pins.md). steady_1k_60db_48k/am_4hz_60db_48k
-# are 4 s (all other cases are 5 s); see ppa-pins.md for why. pa = SQAT's
+# package's roughness_dw, see docs/oracle-pins.md §4.6). steady_1k_60db_48k/am_4hz_60db_48k
+# are 4 s (all other cases are 5 s); see docs/oracle-pins.md §4.4 for why. pa = SQAT's
 # OUT.ScalarPA; N5/S5/R5/FS5 = OUT.L.N5 / OUT.S.S5 / OUT.R.R5 / OUT.FS.FS5 —
 # vendored so any wrapper deviation (Task 3) is attributable per-component
 # before any tolerance is set.

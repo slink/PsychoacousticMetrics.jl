@@ -8,7 +8,7 @@ using Statistics: mean
 
     @testset "_fs_frames matches MATLAB buffer('nodelay') pins" begin
         # Frame counts pinned against Octave (Task 1,
-        # .superpowers/sdd/buffer_pins.json, SQAT @ 00b449e, Octave 11.3.0,
+        # docs/oracle-pins.md §2.3, SQAT @ 00b449e, Octave 11.3.0,
         # octave-signal 1.4.7): nframes = floor((L-V)/hop) + 1, NOT
         # ceil((L-V)/hop) — the two formulas disagree whenever L-V is an
         # exact multiple of hop, which is 3 of the 4 pinned cases below.
@@ -69,7 +69,7 @@ using Statistics: mean
 
     @testset "_terhardt_excitation_fs anchor frame vs oracle dump" begin
         # h0 per channel for anchor_44k frame 1, dumped from the Octave
-        # oracle (Task 1, .superpowers/sdd/stage_dumps.json, provenance:
+        # oracle (Task 1, docs/oracle-pins.md §2.9, provenance:
         # SQAT @ 00b449e40599f1c1ef4abe0596094552213d57eb, Octave 11.3.0,
         # octave-signal 1.4.7, dump_fs_stage.m). h0 = mean(abs(ei)) is
         # computed in Task 4's stage, so compare it here from the raw ei.

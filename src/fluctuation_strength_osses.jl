@@ -6,12 +6,12 @@
 # reference — see fluctuation_strength_tables.jl for the licensing note.
 
 # MATLAB buffer(x, N, round(0.9N), 'nodelay') semantics (pinned against
-# Octave, see .superpowers/sdd/buffer_pins.json): frames start at sample 1
+# Octave, see docs/oracle-pins.md §2.3): frames start at sample 1
 # and advance by hop = N - round(0.9N); trailing partial frames are
 # ZERO-PADDED, not dropped. The frame-count closed form is
 # floor((L-V)/hop) + 1 — NOT ceil((L-V)/hop), which disagrees whenever
 # L-V is an exact multiple of hop (verified against all 4 pinned (L,N,V)
-# triples, 3 of 4 hit this case; see fs-oracle-pins.md Step 3.1). This
+# triples, 3 of 4 hit this case; see docs/oracle-pins.md §2.3). This
 # also means a signal with L == N (the "stationary" case, where hop ==
 # L-V exactly) produces 2 frames, not 1 — a documented pinned quirk, not
 # a bug. Returns the frame matrix and 1-based start indices.
@@ -28,7 +28,7 @@ function _fs_frames(sig::AbstractVector{Float64}, N::Int)
     V = round(Int, 0.9 * N)
     hop = N - V
     L = length(sig)
-    # pinned formula (buffer_pins.json); max(1, ·) only fires for L < V,
+    # pinned formula (docs/oracle-pins.md §2.3); max(1, ·) only fires for L < V,
     # i.e. outside the pinned domain — see the comment block above.
     nf = max(1, fld(L - V, hop) + 1)
     frames = zeros(N, nf)
@@ -86,7 +86,7 @@ end
 # BEFORE the level recalibration — preserved quirk: the recalibration
 # would otherwise divide by an all-zero sum (0/0), and the pinned
 # behavior for inaudible input is exact zeros, not NaN (see
-# fs-oracle-pins.md Step 3.3: exact-zero output, silently, no error).
+# docs/oracle-pins.md §2.5: exact-zero output, silently, no error).
 function _terhardt_excitation_fs(frame::AbstractVector{Float64}, fs::Real)
     N = length(frame)
     dBFS = 94.0
@@ -107,7 +107,7 @@ function _terhardt_excitation_fs(frame::AbstractVector{Float64}, fs::Real)
     # high-frequency tone killed by the a0 roll-off before it ever reaches
     # this stage) short-circuits to silence below — that path IS oracle-
     # validated (SQAT_FS_CASES "tone_25bark": 70 dB @ 15.8 kHz, empty
-    # audible set, FSmean = 0.0 exactly; fs-oracle-pins.md Step 3.3).
+    # audible set, FSmean = 0.0 exactly; docs/oracle-pins.md §2.5).
     isempty(audible) && return zeros(47, N)
 
     # But a component that stays AUDIBLE at >= 24 Bark (~15.5 kHz and
@@ -238,8 +238,8 @@ end
 # swallows that error and runs its fallback branch for all FOUR boundary
 # entries, which is a nearest-neighbor COPY, never the spline/linear value.
 # Verified by direct trace against both random and fixed data (never
-# observed to differ) — see .superpowers/sdd/fs-oracle-pins.md §3.2 and the
-# instrumented reproduction in .superpowers/sdd/dump_fs_stage.m. This is a
+# observed to differ) — see docs/oracle-pins.md §2.4 and the
+# instrumented reproduction in scripts/dump_fs_stage.m. This is a
 # deliberate divergence from the brief's original linear-extrapolation
 # formulas, which do not match the running oracle.
 function _fs_cross_covariance(hBP::Matrix{Float64})
@@ -290,8 +290,8 @@ not). `method = :time_varying` uses 2-s frames with 90 % overlap;
 the frame-buffering closed form is `floor((L-V)/hop) + 1` and a stationary
 call always has `L == N` (so `L - V == hop` exactly), the "stationary" path
 actually always yields TWO frames, not one (a pinned quirk of the reference
-implementation, not a bug here — see `.superpowers/sdd/fs-oracle-pins.md`
-§3.1 and its "Step 3.1 consequence"; the second frame overlaps 90% with the
+implementation, not a bug here — see `docs/oracle-pins.md`
+§2.3; the second frame overlaps 90% with the
 first). Signals shorter than 2 s fall back to `:stationary` with a warning
 (reference behavior), and hit the same 2-frame quirk.
 
@@ -299,7 +299,7 @@ Content at/above ~24 Bark (~15.5 kHz) has two distinct regimes, and only
 one is oracle-validated: a moderate-level high-frequency tone killed by the
 a0 roll-off before the excitation stage (no audible bins left) silently
 yields an exact `0.0` fluctuation strength, not an error — pinned against
-the reference (fs-oracle-pins.md §3.3). But a component that stays AUDIBLE
+the reference (docs/oracle-pins.md §2.5). But a component that stays AUDIBLE
 at >= 24 Bark (loud enough to survive the roll-off) throws a `DomainError`:
 it falls outside the model's 47-channel structure (channels only run to
 23.5 Bark), and the upstream reference itself crashes on the same inputs
@@ -310,7 +310,7 @@ amplitude-modulated at 4 Hz → 1 vacil.
 
 Known deviations of the reference code from its own paper (code wins,
 verified against SQAT @ 00b449e, and against this package's own
-Octave-11.3.0-run oracle rig — see fs-oracle-pins.md): weighting exponent
+Octave-11.3.0-run oracle rig — see docs/oracle-pins.md §2): weighting exponent
 `p_g = 1` (paper: 1.7); modulation-depth compression slope 0.3 above 0.7
 (paper: 1/3); specific FS scaled by a calibration constant 0.4980 per
 channel, which combines with the 0.5-Bark (`dz`) trapezoidal-sum

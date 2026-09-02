@@ -1,3 +1,5 @@
 docs/superpowers/
 .superpowers/
 Manifest.toml
+.worktrees/
+scratch/

@@ -35,7 +35,7 @@ are cited facts read from the pinned oracle,
 `PsychoacousticAnnoyance_Widmann1992_from_percentile.m` @ SQAT commit
 `00b449e40599f1c1ef4abe0596094552213d57eb` (CC BY-NC,
 github.com/ggrecow/SQAT) — no code transcribed, see
-`.superpowers/sdd/pa-oracle-pins.md`.
+`docs/oracle-pins.md` §3.
 
 Takes already-computed metric values: `N` loudness [sone], `S` sharpness
 [acum], `R` roughness [asper], `FS` fluctuation strength [vacil]. The
@@ -63,7 +63,7 @@ direct division (not guarded against `N = 0`) and then has any
 non-finite result zeroed — replicating the reference's
 `wfr(isinf(wfr)|isnan(wfr)) = 0` construct exactly, including the `N = 0,
 R = FS = 0` sub-case where the naive value is `Inf * 0 = NaN` before
-zeroing (pinned in `.superpowers/sdd/pa-oracle-pins.md` Step 4). The net
+zeroing (pinned in `docs/oracle-pins.md` §3). The net
 effect is `N = 0 => PA = 0` exactly, consistent with the analytic limit
 `PA ~ 2.18·N^0.6·(0.4·FS + 0.6·R) -> 0` as `N -> 0`.
 
@@ -133,8 +133,8 @@ see a consistently-calibrated signal.
 `convention = :stationary` on the returned result: the canonical Widmann
 model percentile-izes all four components' time-varying course (see the
 scalar formula's docstring); here all four are whole-signal stationary
-values instead — a documented approximation, pending a time-varying-loudness
-percentile path in a future release.
+values instead — a documented approximation; the `ZwickerTimeVaryingResult`
+method below implements the canonical percentile convention.
 
 `R` and `FS` enter the formula RAW, sign included — mirroring the
 reference's signal-level arithmetic: SQAT's
@@ -190,7 +190,7 @@ end
 # This mirrors the reference convention (SQAT's
 # Sharpness_DIN45692_from_loudness @ 00b449e derives S(t) from the SAME
 # time-varying specific loudness as N(t), on N(t)'s own time axis — see
-# ppa-pins.md §1).
+# docs/oracle-pins.md §4.1).
 _sharpness_over_time(tv::ZwickerTimeVaryingResult) =
     [sharpness(col) for col in eachcol(tv.specific_loudness)]
 
@@ -291,7 +291,7 @@ function psychoacoustic_annoyance_widmann(signal::AbstractVector{<:Real}, fs::Re
     # length(signal)/fs and time_axis[end]: the front end's endpoint-inclusive
     # (linspace-style) raw ~0.5 ms axis is decimated by 4, dropping up to
     # three trailing steps (gap quantized to {0, ~0.5, ~1.0, ~1.5} ms —
-    # measured, ppa-pins.md §4). One nominal 2 ms block is therefore the
+    # measured, docs/oracle-pins.md §4.5). One nominal 2 ms block is therefore the
     # tightest bound that never rejects a matched pair.
     gap = abs(length(signal) / fs - tv.time_axis[end])
     gap <= 0.002 || throw(ArgumentError(

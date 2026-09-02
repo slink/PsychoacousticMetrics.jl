@@ -8,8 +8,8 @@
 # fixtures.
 #
 # Requires: Octave with the octave-signal package installed, and the
-# pinned checkout at /tmp/sqat-pinned (see .superpowers/sdd/fs-oracle-pins.md
-# Step 1).
+# pinned checkout at /tmp/sqat-pinned (see docs/oracle-pins.md
+# §1).
 #
 # Usage: julia --project=. scripts/generate_sqat_fs_crosscheck.jl
 include(joinpath(@__DIR__, "..", "test", "support", "fs_stimuli.jl"))

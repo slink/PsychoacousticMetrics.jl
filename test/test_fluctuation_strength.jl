@@ -11,7 +11,7 @@ using Statistics: mean
     @testset "anchor gate" begin
         # 1 kHz, 60 dB, 100% AM at 4 Hz -> 1 vacil (thesis App. B.3; SQAT
         # docstring). Tolerance derivation (measured 2026-07-08, see
-        # .superpowers/sdd/fs-task-4-report.md for the full log):
+        # docs/oracle-pins.md §2.11; the full log was not retained):
         #   |oracle(anchor_44k fs_mean) - 1.0|  = |1.0053626323366578 - 1| = 5.3626e-3
         #     (this is the reference model's own distance from the ideal 1
         #     vacil, measured once from the fixture — not derived from the
@@ -37,9 +37,9 @@ using Statistics: mean
     end
 
     @testset "stage dumps: mdepth, ki, specific fi (anchor frame 1)" begin
-        # Literals from .superpowers/sdd/stage_dumps.json (provenance: SQAT @
+        # Literals from docs/oracle-pins.md §2.9 (provenance: SQAT @
         # 00b449e40599f1c1ef4abe0596094552213d57eb, Octave 11.3.0,
-        # octave-signal 1.4.7, dump_fs_stage.m, untracked scratch instrumentation).
+        # octave-signal 1.4.7, scripts/dump_fs_stage.m).
         # All 47 channels are compared — no channel exclusions.
         #
         # Tolerances (measured 2026-07-08, both with and without
@@ -65,7 +65,7 @@ using Statistics: mean
 
         # NOTE: P._fs_modulation_depths returns the PRE-compression modulation
         # depth (compression to slope 0.3 above 0.7 happens inside
-        # _fs_specific), so this compares against stage_dumps.json's
+        # _fs_specific), so this compares against the stage dump's (docs/oracle-pins.md §2.9)
         # `mdepth_pre` field, not `mdepth_post`. The compression formula
         # itself is exercised indirectly by the `fi` comparison below, since
         # `_fs_specific` applies it before raising to the 1.7 power.
@@ -122,7 +122,7 @@ using Statistics: mean
         @test !any(isnan, r.specific_fluctuation_strength)
 
         # method = :stationary on the 4 s anchor: N == length(sig), so
-        # L - V == hop EXACTLY (pinned quirk, fs-oracle-pins.md Step 3.1 /
+        # L - V == hop EXACTLY (pinned quirk, docs/oracle-pins.md §2.3 /
         # SQAT_FS_CASES "stationary_anchor") -> 2 frames, NOT 1.
         rs = fluctuation_strength_osses(sig, 44100; method = :stationary)
         @test length(rs.fluctuation_strength_over_time) == 2
@@ -151,7 +151,7 @@ using Statistics: mean
     end
 
     @testset "24 Bark behavior" begin
-        # Pinned fact (fs-oracle-pins.md Step 3.3): a 15.8 kHz, 70 dB tone
+        # Pinned fact (docs/oracle-pins.md §2.5): a 15.8 kHz, 70 dB tone
         # (>= 24 Bark) yields FSmean = 0.0 EXACTLY, silently — not an error,
         # not NaN. Fixture: SQAT_FS_CASES "tone_25bark" (fs_mean = 0.0).
         # This is the INAUDIBLE regime: the a0 roll-off pushes the level

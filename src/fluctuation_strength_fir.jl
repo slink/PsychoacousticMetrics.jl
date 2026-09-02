@@ -5,8 +5,8 @@
 # CC BY-NC 4.0 — see src/fluctuation_strength_tables.jl for the licensing
 # rationale. Extraction provenance: Octave 11.3.0, octave-signal 1.4.7,
 # scripts/extract_fs_filters.jl (2026-07-07), full float64 precision
-# (%.17g). Source JSONs: .superpowers/sdd/hweight_sos.json,
-# .superpowers/sdd/a0_fir_b.json.
+# (%.17g). Provenance and regeneration:
+# docs/oracle-pins.md §2.8.
 
 # Hweight modulation-depth band-pass filters (SOS form, rows [b0 b1 b2 a0 a1
 # a2], HP section(s) first then LP sections), for fs = 44100 Hz and
