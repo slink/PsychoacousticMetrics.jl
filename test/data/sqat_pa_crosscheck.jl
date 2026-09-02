@@ -6,7 +6,7 @@
 # under Octave 11.3.0 (octave-signal 1.4.7). Pure scalar
 # arithmetic — any disagreement with `psychoacoustic_annoyance_widmann` is a
 # transcription bug, not a tolerance question. Grid is non-negative only (the
-# reference goes complex on negative inputs, see pa-oracle-pins.md).
+# reference goes complex on negative inputs, see docs/oracle-pins.md §4.3).
 const SQAT_PA_FORMULA_CASES = [
     (N = 0.0, S = 0.5, R = 0.0, FS = 0.0, pa = 0.0),
     (N = 0.0, S = 0.5, R = 0.0, FS = 0.05, pa = 0.0),
@@ -857,13 +857,19 @@ const SQAT_PA_FORMULA_CASES = [
 # no onset transient to discard), on signals synthesized by this package's own
 # fs_am_tone (test/support/fs_stimuli.jl) with mdepth=0 for the steady tones
 # (collapses the AM envelope to the constant 1, verified by direct RMS check —
-# see pa-oracle-pins.md) and mdepth=1 for am_4hz_60db (the FS anchor signal,
-# vendored for information; not a steady tone). pa = SQAT's OUT.ScalarPA; N5/S5/
-# R5/FS5 = OUT.L.N5 / OUT.S.S5 / OUT.R.R5 / OUT.FS.FS5 — vendored so any wrapper
-# deviation (Task 3) is attributable per-component before any tolerance is set.
+# see docs/oracle-pins.md §4.4) and mdepth=1 for am_4hz_60db/am_4hz_60db_48k (the FS anchor
+# signal and its 48 kHz counterpart; not steady tones — the 48 kHz one is the
+# R-lineage probe for the percentile-PA rig: SQAT's Roughness_Daniel1997 vs this
+# package's roughness_dw, see docs/oracle-pins.md §4.6). steady_1k_60db_48k/am_4hz_60db_48k
+# are 4 s (all other cases are 5 s); see docs/oracle-pins.md §4.4 for why. pa = SQAT's
+# OUT.ScalarPA; N5/S5/R5/FS5 = OUT.L.N5 / OUT.S.S5 / OUT.R.R5 / OUT.FS.FS5 —
+# vendored so any wrapper deviation (Task 3) is attributable per-component
+# before any tolerance is set.
 const SQAT_PA_SIGNAL_CASES = [
     (name = "steady_1k_40db", fs = 44100.0, pa = 1.0068980604614974, N5 = 1.005805592084699, S5 = 1.0368413537354717, R5 = 0.00027840740278793337, FS5 = -0.001666097924380089),
     (name = "steady_1k_60db", fs = 44100.0, pa = 4.039264231698433, N5 = 4.034781102283317, S5 = 1.030652068249065, R5 = 0.0006147780127331664, FS5 = 0.0013040771968337319),
     (name = "am_4hz_60db", fs = 44100.0, pa = 7.014386071595972, N5 = 4.707678267908837, S5 = 1.0355858569882928, R5 = 0.013015402778587074, FS5 = 1.0246969634631473),
     (name = "steady_1k_40db_48k", fs = 48000.0, pa = 1.006865591468576, N5 = 1.005832212827357, S5 = 1.0368413402371033, R5 = 0.0002790057580403855, FS5 = -0.0015994481988923833),
+    (name = "steady_1k_60db_48k", fs = 48000.0, pa = 4.039729273183468, N5 = 4.034881749794696, S5 = 1.0306524227322555, R5 = 0.0006155141096380355, FS5 = 0.0014838887431786161),
+    (name = "am_4hz_60db_48k", fs = 48000.0, pa = 7.0104524211345876, N5 = 4.706023832732632, S5 = 1.035585574479048, R5 = 0.01299911916394573, FS5 = 1.0239096429240029),
 ]

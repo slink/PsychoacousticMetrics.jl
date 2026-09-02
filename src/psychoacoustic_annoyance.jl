@@ -6,11 +6,12 @@ Result of the signal-level `psychoacoustic_annoyance_widmann` wrapper:
 `loudness` [sone], `sharpness` [acum], `roughness` [asper],
 `fluctuation_strength` [vacil] — plus `convention`, a `Symbol` describing
 how those components relate to the signal. The canonical Widmann model
-percentile-izes all four components (not just loudness); `convention =
-:stationary` documents that here all four are whole-signal stationary
-values rather than percentiles (a future `:percentile` convention will
-describe all four as percentiles once a time-varying loudness path
-exists).
+percentile-izes all four components (not just loudness):
+`convention = :percentile` documents that all four component fields carry
+95th-percentile statistics of their time-varying tracks (the canonical
+convention — see the `ZwickerTimeVaryingResult` method); `convention =
+:stationary` documents that all four are whole-signal stationary values
+instead (a documented approximation — see the `ZwickerResult` method).
 """
 struct PsychoacousticAnnoyanceResult
     pa::Float64
@@ -34,7 +35,7 @@ are cited facts read from the pinned oracle,
 `PsychoacousticAnnoyance_Widmann1992_from_percentile.m` @ SQAT commit
 `00b449e40599f1c1ef4abe0596094552213d57eb` (CC BY-NC,
 github.com/ggrecow/SQAT) — no code transcribed, see
-`.superpowers/sdd/pa-oracle-pins.md`.
+`docs/oracle-pins.md` §3.
 
 Takes already-computed metric values: `N` loudness [sone], `S` sharpness
 [acum], `R` roughness [asper], `FS` fluctuation strength [vacil]. The
@@ -62,7 +63,7 @@ direct division (not guarded against `N = 0`) and then has any
 non-finite result zeroed — replicating the reference's
 `wfr(isinf(wfr)|isnan(wfr)) = 0` construct exactly, including the `N = 0,
 R = FS = 0` sub-case where the naive value is `Inf * 0 = NaN` before
-zeroing (pinned in `.superpowers/sdd/pa-oracle-pins.md` Step 4). The net
+zeroing (pinned in `docs/oracle-pins.md` §3). The net
 effect is `N = 0 => PA = 0` exactly, consistent with the analytic limit
 `PA ~ 2.18·N^0.6·(0.4·FS + 0.6·R) -> 0` as `N -> 0`.
 
@@ -132,8 +133,8 @@ see a consistently-calibrated signal.
 `convention = :stationary` on the returned result: the canonical Widmann
 model percentile-izes all four components' time-varying course (see the
 scalar formula's docstring); here all four are whole-signal stationary
-values instead — a documented approximation, pending a time-varying-loudness
-percentile path in a future release.
+values instead — a documented approximation; the `ZwickerTimeVaryingResult`
+method below implements the canonical percentile convention.
 
 `R` and `FS` enter the formula RAW, sign included — mirroring the
 reference's signal-level arithmetic: SQAT's
@@ -181,4 +182,133 @@ function psychoacoustic_annoyance_widmann(signal::AbstractVector{<:Real}, fs::Re
     # non-negativity guard via the shared internal arithmetic.
     pa = _pa_widmann_arithmetic(N, S, R, FS)
     return PsychoacousticAnnoyanceResult(pa, N, S, R, FS, :stationary)
+end
+
+# S(t): DIN sharpness applied to each specific-loudness column of a
+# time-varying loudness result — pure composition of the existing
+# `sharpness` (240-bin, 0.1 Bark) over the 2 ms output axis, no new DSP.
+# This mirrors the reference convention (SQAT's
+# Sharpness_DIN45692_from_loudness @ 00b449e derives S(t) from the SAME
+# time-varying specific loudness as N(t), on N(t)'s own time axis — see
+# docs/oracle-pins.md §4.1).
+_sharpness_over_time(tv::ZwickerTimeVaryingResult) =
+    [sharpness(col) for col in eachcol(tv.specific_loudness)]
+
+"""
+    psychoacoustic_annoyance_widmann(signal::AbstractVector{<:Real}, fs::Real,
+                                      tv::ZwickerTimeVaryingResult; pa_per_unit::Real=1.0)
+        -> PsychoacousticAnnoyanceResult
+
+Widmann (1992) psychoacoustic annoyance in the CANONICAL percentile
+convention (`convention = :percentile`): all four components are
+95th-percentile statistics ("value exceeded 5 % of the time": N₅, S₅, R₅,
+FS₅) of each metric's own time-varying track, composed through the same
+arithmetic as the scalar-formula method above (see that docstring for full
+model documentation and attribution).
+
+- `N₅` = `tv.N5` — the caller supplies `tv`, typically computed on the SAME
+  `signal`/`fs` via ZwickerLoudnessAudio's `loudness_zwtv` (ISO 532-1:2017
+  Method 2 lineage). This surface only needs the resulting
+  `ZwickerLoudness.ZwickerTimeVaryingResult`, not the audio front end.
+- `S₅` = 95th percentile of S(t), where S(t) applies the existing
+  `sharpness` (`:din` weighting — Widmann's original, and SQAT PA's
+  default) to each column of `tv.specific_loudness`. S(t) therefore lives
+  on N(t)'s own 2 ms axis, exactly as in the reference (SQAT derives its
+  S(t) from the same time-varying specific loudness as N(t)).
+- `R₅` = 95th percentile of `roughness_dw(signal, fs).roughness_over_time`
+  (~100 ms hops).
+- `FS₅` = 95th percentile of `fluctuation_strength_osses(signal,
+  fs).fluctuation_strength_over_time` (~200 ms hops).
+
+Percentiles are taken over each metric's NATIVE track resolution — the
+reference convention too (SQAT computes each `X5` on the metric's own
+`InstantaneousX` vector before any resampling). Our percentile is
+`Statistics.quantile(track, 0.95)` — Hyndman–Fan type 7 (linear
+interpolation between order statistics), matching the ZwickerLoudness
+kernel's own `N5` definition. Three known divergences from the SQAT
+reference, each measured and attributed in
+`test/test_psychoacoustic_annoyance.jl` before any tolerance was set:
+
+1. **Percentile definition**: SQAT's `get_exceeded_value` is a
+   nearest-rank selection (`sort(track)[floor(0.95N)]`, no interpolation).
+   On fine tracks (N(t)/S(t), thousands of 2 ms frames) the two agree to
+   ~1e-9; on the coarse FS(t) track (tens of frames) the gap is a full
+   order-statistic step (measured 1.3e-2 vacil on a 4 s steady tone whose
+   FS(t) has 12 frames).
+2. **Roughness lineage**: SQAT uses the canonical-MATLAB Daniel & Weber
+   implementation; `roughness_dw` is the MoSQITo lineage (gzi placement
+   differs — see its docstring). A model difference, not a bug.
+3. **Loudness/sharpness chain**: our N(t)/S(t) come from the
+   MoSQITo-lineage `loudness_zwtv` chain, SQAT's from the ISO 532-1:2017
+   reference code (sub-1 % N₅ deviations on the fixture cases; the same
+   DIN 45692 weighting family on both sides for S).
+
+`R₅`/`FS₅` enter the formula RAW, sign included — mirroring the
+reference's signal-level arithmetic exactly as the stationary wrapper does
+(see its docstring; near-stationary tones can give a tiny negative FS₅ on
+both sides — SQAT's own vendored `steady_1k_40db_48k` has
+`FS5 = -0.0016`).
+
+# Guards
+
+- `fs` must be 48000 Hz (`ArgumentError` otherwise): the time-varying
+  loudness front end is 48 kHz-only, so a signal/`tv` pair at any other
+  rate cannot be consistent — resample first.
+- Duration consistency: `|length(signal)/fs − tv.time_axis[end]|` must not
+  exceed 0.002 s (one nominal 2 ms loudness block), else `ArgumentError`.
+  Matched pairs naturally show a gap of up to ~1.5 ms — the front end's
+  endpoint-inclusive (linspace-style) time axis is decimated by 4, which
+  drops up to three raw ~0.5 ms steps — so the bound cannot be tightened
+  below 2 ms; anything larger indicates a mismatched signal/`tv` pair.
+- `pa_per_unit` must be positive. It is applied to `signal` for the R/FS
+  tracks only; **`tv` must have been computed at the SAME calibration**
+  (e.g. the same `pa_per_unit` passed to `loudness_zwtv`) — a finished
+  loudness result cannot be rescaled here, so that consistency is the
+  caller's responsibility.
+
+# Example
+
+```julia
+using PsychoacousticMetrics, ZwickerLoudnessAudio
+
+signal = ...      # time-domain samples, calibrated so 1.0 == 1 pascal
+fs = 48000
+tv = loudness_zwtv(signal, fs)
+result = psychoacoustic_annoyance_widmann(signal, fs, tv)
+result.pa          # PA [au], percentile convention
+result.convention  # :percentile
+```
+"""
+function psychoacoustic_annoyance_widmann(signal::AbstractVector{<:Real}, fs::Real,
+                                          tv::ZwickerTimeVaryingResult;
+                                          pa_per_unit::Real=1.0)
+    fs == 48000 || throw(ArgumentError(
+        "fs = $fs Hz is not supported: the time-varying loudness front end is " *
+        "48 kHz-only, so a signal/tv pair at any other rate cannot be consistent — " *
+        "resample to 48 kHz first"))
+    pa_per_unit > 0 || throw(ArgumentError("pa_per_unit must be positive, got $pa_per_unit"))
+    # Matched signal/tv pairs show a natural gap of up to ~1.5 ms between
+    # length(signal)/fs and time_axis[end]: the front end's endpoint-inclusive
+    # (linspace-style) raw ~0.5 ms axis is decimated by 4, dropping up to
+    # three trailing steps (gap quantized to {0, ~0.5, ~1.0, ~1.5} ms —
+    # measured, docs/oracle-pins.md §4.5). One nominal 2 ms block is therefore the
+    # tightest bound that never rejects a matched pair.
+    gap = abs(length(signal) / fs - tv.time_axis[end])
+    gap <= 0.002 || throw(ArgumentError(
+        "signal/tv duration mismatch: |length(signal)/fs − tv.time_axis[end]| = " *
+        "$(gap) s exceeds one 2 ms loudness block — this tv result was not " *
+        "computed from this signal"))
+
+    N5 = tv.N5
+    S5 = quantile(_sharpness_over_time(tv), 0.95)
+    R5 = quantile(roughness_dw(signal, fs; pa_per_unit=pa_per_unit).roughness_over_time, 0.95)
+    FS5 = quantile(fluctuation_strength_osses(signal, fs;
+                                              pa_per_unit=pa_per_unit).fluctuation_strength_over_time,
+                   0.95)
+    # Raw signed R5/FS5, mirroring the reference's signal-level arithmetic
+    # (see the stationary wrapper's docstring); intentionally bypasses the
+    # public scalar surface's non-negativity guard via the shared internal
+    # arithmetic.
+    pa = _pa_widmann_arithmetic(N5, S5, R5, FS5)
+    return PsychoacousticAnnoyanceResult(pa, N5, S5, R5, FS5, :percentile)
 end

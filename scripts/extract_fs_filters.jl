@@ -14,7 +14,7 @@
 #      transcription of the function's logic.
 #
 # Requires: the pinned checkout at /tmp/sqat-pinned (see
-# .superpowers/sdd/fs-oracle-pins.md Step 1), `uv` (for scipy), and Octave
+# docs/oracle-pins.md §1), `uv` (for scipy), and Octave
 # with the octave-signal package installed.
 #
 # Usage: julia scripts/extract_fs_filters.jl
@@ -22,7 +22,7 @@ using Dates: now
 
 const SQAT_DIR = get(ENV, "SQAT_DIR", "/tmp/sqat-pinned")
 const PRIVATE_DIR = joinpath(SQAT_DIR, "psychoacoustic_metrics", "FluctuationStrength_Osses2016", "private")
-const SCRATCH_DIR = joinpath(@__DIR__, "..", ".superpowers", "sdd")
+const SCRATCH_DIR = joinpath(@__DIR__, "..", "scratch")  # gitignored
 
 isdir(SQAT_DIR) || error("pinned SQAT checkout not found at $SQAT_DIR — clone+checkout per Step 1 first")
 mkpath(SCRATCH_DIR)

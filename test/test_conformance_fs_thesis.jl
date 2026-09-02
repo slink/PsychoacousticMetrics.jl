@@ -25,7 +25,7 @@
 # Both points fail the 30%-of-reference gate and were checked, per the
 # binding adjudication rule, against direct one-off runs of the real Octave
 # oracle (SQAT @ 00b449e, same machine / Octave 11.3.0 / octave-signal 1.4.7
-# as fs-oracle-pins.md) on the IDENTICAL `fs_am_tone(1000,fmod,70,4,44100)`
+# as docs/oracle-pins.md §2.2) on the IDENTICAL `fs_am_tone(1000,fmod,70,4,44100)`
 # samples this test uses (2026-07-08):
 #
 #   fmod=2:  computed 1.1096 vs. published 0.84 (rel dev 32.1%). Oracle
@@ -63,7 +63,7 @@
 # Task 1's oracle rig measured the ORACLE ITSELF (SQAT's own
 # FluctuationStrength_Osses2016, not this package) giving 3.86 vacil on the
 # `am_bbn_4hz` fixture's noise stimulus vs. the published 1.80 vacil
-# (fs-oracle-pins.md, "Step 7" / "Cross-checked against two more entries").
+# (docs/oracle-pins.md §2.2 and §2.10).
 # The mechanism is stimulus mismatch, not model or transcription error:
 # SQAT's own published validation curve was measured against
 # `Fc-8010_BW-15980` (SQAT's original band-pass-around-8kHz noise, loaded

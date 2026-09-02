@@ -1,7 +1,7 @@
 module PsychoacousticMetrics
 
-using ZwickerLoudness: ZwickerResult
-using Statistics: mean, std, cor, var
+using ZwickerLoudness: ZwickerResult, ZwickerTimeVaryingResult
+using Statistics: mean, std, cor, var, quantile
 using FFTW: fft, ifft
 
 export sharpness, roughness_dw, RoughnessResult

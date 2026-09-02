@@ -1,7 +1,7 @@
 name = "PsychoacousticMetrics"
 uuid = "c3f1bcc2-aba4-488e-81ce-2127bac789a7"
 authors = ["slink"]
-version = "0.4.0"
+version = "0.5.0"
 
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
@@ -9,15 +9,18 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 ZwickerLoudness = "08868560-fde5-4d5c-a6ad-ef47176ecf8c"
 
 [compat]
+Aqua = "0.8"
 FFTW = "1"
 Statistics = "1"
-ZwickerLoudness = "0.2"
-ZwickerLoudnessAudio = "0.2"
+Test = "1"
+ZwickerLoudness = "0.3"
+ZwickerLoudnessAudio = "0.3"
 julia = "1.10"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ZwickerLoudnessAudio = "148fbc6a-b99d-460a-8261-c15b9908ee84"
 
 [targets]
-test = ["Test", "ZwickerLoudnessAudio"]
+test = ["Aqua", "Test", "ZwickerLoudnessAudio"]
