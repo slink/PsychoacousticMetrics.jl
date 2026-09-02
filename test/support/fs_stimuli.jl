@@ -115,7 +115,19 @@ function synthesize_case(name::AbstractString)
         t = (0:round(Int, 4.0 * 44100)-1) ./ 44100
         p = 2e-5 * 10.0^(70 / 20)
         return (p * sqrt(2)) .* cos.(2π * 15800 .* t), 44100.0, 1
-    else
-        error("unknown fluctuation-strength fixture case: $name")
     end
+    # Thesis Table B.1 grid (test_conformance_fs_thesis.jl): the exact
+    # stimuli that test gates, so SQAT's own output on each is vendorable.
+    m = match(r"^thesis_(am|fm|bbn)_(\d+)hz$", name)
+    if m !== nothing
+        fmod = parse(Float64, m.captures[2])
+        if m.captures[1] == "am"
+            return fs_am_tone(1000.0, fmod, 70.0, 4.0, 44100.0), 44100.0, 1
+        elseif m.captures[1] == "fm"
+            return fs_fm_tone(1500.0, fmod, 700.0, 70.0, 4.0, 44100.0), 44100.0, 1
+        else
+            return fs_am_noise(16000.0, fmod, 60.0, 4.0, 44100.0), 44100.0, 1
+        end
+    end
+    error("unknown fluctuation-strength fixture case: $name")
 end
