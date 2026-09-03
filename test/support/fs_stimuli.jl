@@ -75,20 +75,63 @@ function fs_fm_tone(fc, fmod, fdev, spl, dur, fs)
     return x .* (p * sqrt(2))   # constant-envelope tone: rms(cos) = 1/sqrt(2)
 end
 
-function fs_am_noise(bw_hz, fmod, spl, dur, fs; seed = UInt64(0x9e3779b97f4a7c15))
+# Deterministic noise, band-limited via FFT brick wall to [20, bw_hz] Hz.
+function _fs_bandlimited_noise(bw_hz, dur, fs; seed = UInt64(0x9e3779b97f4a7c15))
     n = round(Int, dur * fs)
     noise = _fs_xorshift64(seed, n)
-    # band-limit via FFT brick wall to [20, bw_hz] (both sides deterministic)
     X = fft(noise)
     freqs = (0:n-1) .* (fs / n)
     keep = (freqs .>= 20.0) .& (freqs .<= bw_hz)
     keep .|= (freqs .>= fs - bw_hz) .& (freqs .<= fs - 20.0)
     X[.!keep] .= 0
-    noise = real.(ifft(X))
-    t = (0:n-1) ./ fs
+    return real.(ifft(X))
+end
+
+function fs_am_noise(bw_hz, fmod, spl, dur, fs; seed = UInt64(0x9e3779b97f4a7c15))
+    noise = _fs_bandlimited_noise(bw_hz, dur, fs; seed)
+    t = (0:length(noise)-1) ./ fs
     x = (1 .+ cos.(2π * fmod .* t)) .* noise
     p = 2e-5 * 10.0^(spl / 20)
     return x .* (p / sqrt(mean(abs2, x)))         # level-normalized post-modulation
+end
+
+# ---------------------------------------------------------------------------
+# Osses et al. (2016) validation-dataset laws. The three generators above
+# follow the convention of SQAT's shipped reference signal (cosine carrier x
+# cosine envelope, see docs/oracle-pins.md §2.2). The Fastl & Zwicker
+# validation grid that SQAT's own validation scripts and
+# test_conformance_fs_thesis.jl use is a DIFFERENT set of files
+# (github.com/aosses-tue/fluctuation-strength-TUe, auxdata/osses2016a/
+# Stimuli/, also distributed as doi:10.5281/zenodo.7933206). Their laws were
+# read off the samples (docs/oracle-pins.md §2.13):
+#   AM tone : (1 - m cos(2π fmod t)) · sin(2π fc t)              residual 2.8e-4
+#   FM tone : sin(2π fc t - (fdev/fmod) sin(2π fmod t))          residual 2.8e-4
+#   AM noise: power envelope (1 - cos(2π fmod t))/2, i.e. the amplitude
+#             envelope is |sin(π fmod t)|, NOT (1 + cos): noise · sin(π fmod t)
+# all RMS-calibrated after modulation (the files measure 69.98 / 59.98 dB).
+# These generators reproduce SQAT's fluctuation strength on the real files
+# to 4 decimals (AM), 0.1 % (FM) and ~5 % (noise, a different random draw).
+# ---------------------------------------------------------------------------
+function fs_am_tone_osses2016(fc, fmod, spl, dur, fs; mdepth = 1.0)
+    t = (0:round(Int, dur * fs)-1) ./ fs
+    x = (1 .- mdepth .* cos.(2π * fmod .* t)) .* sin.(2π * fc .* t)
+    p = 2e-5 * 10.0^(spl / 20)
+    return x .* (p / sqrt(mean(abs2, x)))
+end
+
+function fs_fm_tone_osses2016(fc, fmod, fdev, spl, dur, fs)
+    t = (0:round(Int, dur * fs)-1) ./ fs
+    x = sin.(2π * fc .* t .- (fdev / fmod) .* sin.(2π * fmod .* t))
+    p = 2e-5 * 10.0^(spl / 20)
+    return x .* (p / sqrt(mean(abs2, x)))
+end
+
+function fs_am_noise_osses2016(bw_hz, fmod, spl, dur, fs; seed = UInt64(0x9e3779b97f4a7c15))
+    noise = _fs_bandlimited_noise(bw_hz, dur, fs; seed)
+    t = (0:length(noise)-1) ./ fs
+    x = noise .* sin.(π * fmod .* t)              # |sin(π fmod t)| envelope, period 1/fmod
+    p = 2e-5 * 10.0^(spl / 20)
+    return x .* (p / sqrt(mean(abs2, x)))
 end
 
 # Dispatcher shared by the fixture generator and by tests: maps a fixture
@@ -116,17 +159,18 @@ function synthesize_case(name::AbstractString)
         p = 2e-5 * 10.0^(70 / 20)
         return (p * sqrt(2)) .* cos.(2π * 15800 .* t), 44100.0, 1
     end
-    # Thesis Table B.1 grid (test_conformance_fs_thesis.jl): the exact
-    # stimuli that test gates, so SQAT's own output on each is vendorable.
+    # Thesis Table B.1 grid (test_conformance_fs_thesis.jl), synthesized with
+    # the validation-dataset laws above so the stimuli match the files SQAT's
+    # own validation scripts read; SQAT's output on each is vendorable.
     m = match(r"^thesis_(am|fm|bbn)_(\d+)hz$", name)
     if m !== nothing
         fmod = parse(Float64, m.captures[2])
         if m.captures[1] == "am"
-            return fs_am_tone(1000.0, fmod, 70.0, 4.0, 44100.0), 44100.0, 1
+            return fs_am_tone_osses2016(1000.0, fmod, 70.0, 4.0, 44100.0), 44100.0, 1
         elseif m.captures[1] == "fm"
-            return fs_fm_tone(1500.0, fmod, 700.0, 70.0, 4.0, 44100.0), 44100.0, 1
+            return fs_fm_tone_osses2016(1500.0, fmod, 700.0, 70.0, 4.0, 44100.0), 44100.0, 1
         else
-            return fs_am_noise(16000.0, fmod, 60.0, 4.0, 44100.0), 44100.0, 1
+            return fs_am_noise_osses2016(16000.0, fmod, 60.0, 4.0, 44100.0), 44100.0, 1
         end
     end
     error("unknown fluctuation-strength fixture case: $name")
