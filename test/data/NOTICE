@@ -47,6 +47,14 @@ facts (parameter values, computed outputs) are used:
   package's own test generator (test/support/fs_stimuli.jl) — a numeric
   cross-check fixture, not transcribed code. 26 cases: 8 rig cases plus
   the 18-point thesis Table B.1 grid (`thesis_*`).
+- test/data/sqat_fs_osses2016_dataset.jl: SQAT's FluctuationStrength_
+  Osses2016 (same commit, Octave, octave-signal) mean output on the 18
+  Osses et al. (2016) validation stimuli distributed with
+  github.com/aosses-tue/fluctuation-strength-TUe (commit c56701c,
+  auxdata/osses2016a/Stimuli/) and as doi:10.5281/zenodo.7933206
+  (CC BY 4.0). The audio is not reproduced or redistributed; only the
+  oracle's numeric output per file, and the stimulus laws read off the
+  samples (test/support/fs_stimuli.jl, `fs_*_osses2016`).
 
 Portions of this package's test data and source reference SQAT
 (https://github.com/ggrecow/SQAT), licensed under CC BY-NC 4.0, and

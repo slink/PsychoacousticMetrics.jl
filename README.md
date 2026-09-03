@@ -232,18 +232,17 @@ Fluctuation strength is cross-checked against SQAT's
 `FluctuationStrength_Osses2016`, run under Octave, on identical
 signals: 26 cases including all 18 points of Fastl & Zwicker's AM/FM
 reference grid (Osses 2018 thesis Table B.1), each reproduced to
-rtol 1e-6 (measured 4e-9). Against the published curves themselves
-the suite reports, informationally, 8 of 18 points within 30 %, and
-gates the seven where the reference model meets the curve. The other
-points are misses of the reference model, not of this package: SQAT's
-own validation figures show the same misses on its dataset (FM tones
-with fmod > 4 Hz overestimated 3–4x, thesis §B.4.1; the AM-tone
-fmod = 2 and 32 Hz shoulder/tail points). The AM-broadband-noise row is
-not gated on the published curve because the dataset's noise
-convention differs from this package's stimulus in a way its file
-names do not reveal (same 20 Hz–16 kHz band; the model gives 2x the
-published values on ours and matches on theirs); see the conformance
-test's header.
+rtol 1e-6 (measured 3e-9). The grid stimuli follow the laws of the
+Osses et al. (2016) validation files that SQAT's own validation reads
+(reverse-engineered from the samples; see `docs/oracle-pins.md`
+§2.13), and the suite also asserts that each synthetic stimulus gives
+the value SQAT gives on the real file (tones to 5e-3, noise to 25 %
+across random draws). Against the published curves themselves the
+suite reports, informationally, 11 of 18 points within 30 %, and gates
+exactly those 11; the other seven are misses of the reference model
+itself (FM tones with fmod > 4 Hz overestimated 3–4x, thesis §B.4.1;
+the AM-tone and noise shoulder/tail points), which SQAT's own
+validation figures show too.
 
 Psychoacoustic annoyance is cross-checked against SQAT's
 `PsychoacousticAnnoyance_Widmann1992` (an 840-case formula grid,
