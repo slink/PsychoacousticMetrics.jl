@@ -198,14 +198,15 @@ header comments of `test/test_fluctuation_strength.jl`,
 The full working log they were taken from was scratch and was not
 retained.
 
-### 2.12 Thesis Table B.1 grid: oracle parity and published-curve misses
+### 2.12 Thesis Table B.1 grid with the rig convention (superseded)
 
-Measured 2026-09-02 on the 18 stimuli `test_conformance_fs_thesis.jl`
-gates (`thesis_*` cases in `test/data/sqat_fs_crosscheck.jl`; AM tones
-1 kHz 70 dB, FM tones 1.5 kHz ±700 Hz 70 dB, AM noise 20 Hz–16 kHz 60 dB,
-all 4 s at 44.1 kHz, m = 1). "ours" and "SQAT" agree to ≤ 4.3e-10
-relative on the mean and ≤ 3.8e-9 per frame at every point, so the
-columns are shown once.
+Measured 2026-09-02 on the 18 grid stimuli synthesized with the §2.2
+convention (cosine carrier × cosine envelope, `(1 + cos)` amplitude
+envelope on the noise). This is NOT the convention of the validation
+dataset (§2.13), and `test_conformance_fs_thesis.jl` no longer uses it;
+the table is kept because it shows how strongly the noise row depends on
+the modulation law. "ours" and "SQAT" agreed to ≤ 4.3e-10 relative on the
+mean and ≤ 3.8e-9 per frame at every point.
 
 | fmod [Hz] | AM ours = SQAT | AM published | FM ours = SQAT | FM published | BBN ours = SQAT | BBN published |
 |---|---|---|---|---|---|---|
@@ -230,6 +231,54 @@ m = 0.3 / 0.5 / 0.7 / 1.0 gives 0.42 / 1.15 / 2.17 / 3.88 vacil; RNG
 distribution, brick-wall vs none, 4 s vs 8 s and white vs pink shaping
 each move it by < 10 %. A fetch of the dataset to settle this was refused
 by Zenodo (HTTP 403 "unusual traffic", 2026-09-02); unresolved.
+
+### 2.13 The Osses et al. (2016) validation stimuli: laws read off the files
+
+Source: github.com/aosses-tue/fluctuation-strength-TUe @ c56701c,
+`auxdata/osses2016a/Stimuli/` (no license file in that repository; the
+same 18 files are in doi:10.5281/zenodo.7933206, CC BY 4.0, which is what
+SQAT's validation scripts read). All 18 are 4.000 s, 44100 Hz; loaded as
+SQAT's scripts do (samples × 10^((100−94)/20)) they measure 69.98 dB
+(tones) and 59.98 dB (noise) RMS, i.e. RMS-calibrated after modulation.
+The audio is analyzed locally and never vendored.
+
+Laws, fitted by least squares against the samples (relative residual):
+
+| file family | law | residual |
+|---|---|---|
+| `AM-tone-fc-1000_fmod-F_mdept-100-SPL-70-dB` | `(1 − cos 2πFt) · sin 2π·1000·t` | 2.8e-4 |
+| `FM-tone-fc-1500_fmod-F_deltaf-700-SPL-70-dB` | `sin(2π·1500·t − (700/F) sin 2πFt)` (instantaneous frequency starts at 800 Hz) | 2.8e-4 |
+| `randomnoise-Fc-8010_BW-15980_Fmod-F_Mdept-100_SPL-60` | flat 20 Hz–16 kHz noise whose **power** envelope is `(1 − cos 2πFt)/2`, i.e. amplitude envelope `\|sin πFt\|` | folded-power misfit 0.029 (vs 0.17 for an amplitude `(1 − cos)` law) |
+
+Rejected alternatives for the tones (`(1 + sin)`, `(1 + cos)`, cosine
+carrier, opposite deviation sign) leave residuals of 0.75–1.0. The §2.2
+convention (from SQAT's shipped reference signal) is therefore a
+different signal family from the validation dataset; both are real.
+
+SQAT `FluctuationStrength_Osses2016` (method 1) on the real files, and
+`fluctuation_strength_osses` on them, agree to the digits shown; vendored
+in `test/data/sqat_fs_osses2016_dataset.jl`:
+
+| fmod [Hz] | AM tone | FM tone | AM noise | published AM / FM / noise |
+|---|---|---|---|---|
+| 1 | 0.3818 | 0.8803 | 0.4565 | 0.39 / 0.85 / 1.12 |
+| 2 | 1.1062 | 1.4883 | 1.5574 | 0.84 / 1.17 / 1.58 |
+| 4 | 1.3262 | 2.2068 | 1.9035 | 1.25 / 2.00 / 1.80 |
+| 8 | 1.3129 | 2.5988 | 1.8192 | 1.30 / 0.70 / 1.57 |
+| 16 | 0.3369 | 1.2123 | 0.3722 | 0.36 / 0.27 / 0.48 |
+| 32 | 0.0164 | 0.0545 | 0.0349 | 0.06 / 0.02 / 0.14 |
+
+Our synthetic stimuli with these laws (`fs_*_osses2016`, xorshift noise
+seed as in `fs_am_noise`) reproduce the file values to ≤ 4.8e-6 (AM
+1–16 Hz), 1.0e-3 (AM 32 Hz, FM 1 Hz), ≤ 3.6e-5 (other FM) and, for the
+noise (a different random draw), 5.6 % / 0.2 % / 5.3 % / 1.0 % / 1.1 % /
+11.4 % at 1/2/4/8/16/32 Hz. On these stimuli the reference model lands
+within 30 % of the published value at AM 1/4/8/16, FM 1/2/4 and noise
+2/4/8/16 Hz (11 of 18), which is what the thesis test gates.
+
+Two earlier claims are withdrawn by this measurement: that the noise
+row's disagreement was a bandwidth mismatch (both are 20 Hz–16 kHz), and
+the plot-read figure of ~0.58 for SQAT's FM 1 Hz result (it is 0.8803).
 
 ## 3. Psychoacoustic annoyance, stationary convention (v0.4.0)
 
